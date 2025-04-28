@@ -1,8 +1,14 @@
 ## SpaDOT Tutorial
 
-**Authors:** [Wenjing Ma](https://marvinquiet.github.io/) (mawenjing1993@gmail.com), University of Michigan
+**Authors:** 
 
-**Maintainer:** [Wenjing Ma](https://marvinquiet.github.io/) (mawenjing1993@gmail.com)
+[Wenjing Ma](https://marvinquiet.github.io/) (wenjinma@umich.edu), Department of Biostatistics, University of Michigan
+Siyu Hou, Department of Biostatistics, University of Michigan
+[Lulu Shang](https://lulushang.org/), Department of Biostatistics, MD Anderson Cancer Center
+[Jiaying Lu](https://lujiaying.github.io/), Center for Data Science, School of Nursing, Emory University
+[Xiang Zhou](https://xiangzhou.github.io/), Department of Biostatistics, University of Michigan
+
+**Maintainer:** [Wenjing Ma](https://marvinquiet.github.io/) (wenjinma@umich.edu)
 
 **Latest revision:** 04/28/2025
 
@@ -10,7 +16,7 @@
 
 Spatiotemporal transcriptomics is an emerging and powerful approach that adds a temporal dimension to traditional spatial transcriptomics, thus enabling the characterization of dynamic changes in tissue architecture during development or disease progression. Tissue architecture is generally organized into spatial domains -- regions within a tissue characterized by relatively similar gene expression profiles that often correspond to distinct biological functions. Crucially, these spatial domains are not static; rather, they undergo complex temporal dynamics during development, differentiation, and disease progression, resulting in emergence, disappearance, splitting, and merging of domains over time. Therefore, we develop SpaDOT (**Spa**tial **DO**main **T**ransition detection), a novel and scalable machine learning method for identifying spatial domains and inferring their temporal dynamics in spatiotemporal transcriptomics studies.
 
-![img](Figure1.pdf)
+![img](workflow.png)
 
 (The figure illustrates how SpaDOT works. SpaDOT adopts an integration of two complementary encoders, a Gaussian Process kernel and a Graph Attention Transformer, within one variational autoencoder framework to obtain spatially aware latent representations. The latent representations are further constrained by clustering within each time point and optimal transport (OT) coupling across time points, enabling SpaDOT to identify spatial domains and capture domain transition dynamics. )
 
