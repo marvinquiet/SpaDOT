@@ -1,0 +1,204 @@
+import os
+import anndata
+import scipy as sp
+import sklearn.neighbors
+import scipy
+import numpy as np
+import pandas as pd
+import scanpy as sc
+from sklearn.preprocessing import StandardScaler
+
+def preprocess_adata(args, adata, get_SVG=False):
+    SVG_genes = select_SVGs(args, adata, get_SVG=get_SVG)
+    adata = adata[:, SVG_genes].copy()
+    # filter genes
+    if not scipy.sparse.issparse(adata.X):
+        adata.layers['counts'] = scipy.sparse.csr_matrix(adata.X)
+    else:
+        adata.layers['counts'] = adata.X
+    # --- preprocess data
+    tp_adata_list = []
+    for tp in args.timepoints:
+        tp_adata = adata[adata.obs['timepoint'] == tp]
+        sc.pp.normalize_total(tp_adata, target_sum=1e-4)
+        sc.pp.log1p(tp_adata)
+        tp_adata_list.append(tp_adata)
+    combined_genes = set().union(*(obj.var_names for obj in tp_adata_list))
+    combined_genes = list(combined_genes)
+    combined_genes.sort()
+    with open(args.result_dir+os.sep+'selected_genes.txt', 'w') as f:
+        for item in combined_genes:
+            f.write("%s\n" % item)  
+    new_tp_adata_list = []
+    for tp_adata in tp_adata_list:
+        tp_adata = tp_adata[:, combined_genes]
+        sc.pp.scale(tp_adata)
+        new_tp_adata_list.append(tp_adata)
+    concat_adata = anndata.concat(new_tp_adata_list)
+    return concat_adata
+
+def obtain_loc_batch_info(concat_adata):
+    ## list locations
+    concat_adata.obs['timepoint_numeric'] = concat_adata.obs['timepoint'].astype('category').cat.codes
+    batch_info = np.array(concat_adata.obs['timepoint_numeric']).astype('int')
+    batch_mat = np.zeros((batch_info.size, batch_info.max()+1))
+    batch_mat[np.arange(batch_info.size), batch_info] = 1
+    n_batch = batch_mat.shape[1]
+    # scale locations per batch
+    loc = concat_adata.obs.loc[:, ['pixel_x', 'pixel_y']].to_numpy()
+    loc_scaled = np.zeros(loc.shape, dtype=np.float64)
+    for i in range(n_batch):
+        scaler = StandardScaler()
+        b_loc = loc[batch_mat[:,i]==1, :]
+        b_loc = scaler.fit_transform(b_loc)
+        loc_scaled[batch_mat[:,i]==1, :] = b_loc
+    loc = loc_scaled
+    loc = np.concatenate((loc, batch_mat), axis=1)
+    return loc, batch_mat
+
+def get_SVGs(args, adata):
+    adata.write_h5ad(args.result_dir+os.sep+'adata.h5ad')
+    # Rscript /media/sda/wenjinma/projects/spatialATAC-explore/explore_spatialPCA_simulation/spaDOT_pipelines/spaDOT_pipeline/run_SPARKX.R --result_dir args.result_dir
+    # run command
+    print('Running SPARKX...')
+    os.system('Rscript run_SPARKX.R --result_dir '+args.result_dir)
+
+def select_SVGs(args, adata, get_SVG=True):
+    if get_SVG:
+        get_SVGs(args, adata)
+    ## select SVGs by cluster
+    tp_SVGs = []
+    for tp in args.timepoints:
+        tp_SVGs_cluster = pd.read_csv(args.result_dir+os.sep+str(tp)+'_SVG_sparkx_clustered_louvain.csv', header=0, index_col=0)
+        tp_SVGs.append(tp_SVGs_cluster)
+    min_idx = min(range(len(tp_SVGs)), key=lambda i: len(tp_SVGs[i]))
+    min_tp_SVG_len = len(tp_SVGs[min_idx])
+    SVG_genes = tp_SVGs[min_idx].index.tolist()
+    for idx, tp_SVG in enumerate(tp_SVGs):
+        if idx == min_idx: continue
+        tp_SVG_num_clusters = len(set(tp_SVG['cluster']))
+        tp_SVG_top = tp_SVG.sort_values(by='adjustedPval', ascending=True).groupby('cluster').head(max(100, round(min_tp_SVG_len/tp_SVG_num_clusters)))
+        SVG_genes.extend(tp_SVG_top.index.tolist())
+    SVG_genes = list(set(SVG_genes))
+    SVG_genes.sort()
+    # --- select all SVGs
+    # SVG_genes = []
+    # for tp in args.timepoints:
+    #     tp_SVGs_cluster = pd.read_csv(args.result_dir+os.sep+str(tp)+'_SVG_sparkx.csv', header=0, index_col=0)
+    #     SVG_genes.extend(tp_SVGs_cluster.index.tolist())
+    # SVG_genes = list(set(SVG_genes))
+    # SVG_genes.sort()
+    return SVG_genes
+
+
+def Cal_Spatial_Net(adata, rad_cutoff=None, k_cutoff=None,
+                    max_neigh=100, model='Radius', verbose=True):
+    """\
+    Construct the spatial neighbor networks.
+
+    Parameters
+    ----------
+    adata
+        AnnData object of scanpy package.
+    rad_cutoff
+        radius cutoff when model='Radius'
+    k_cutoff
+        The number of nearest neighbors when model='KNN'
+    model
+        The network construction model. When model=='Radius', the spot is connected to spots whose distance is less than rad_cutoff. When model=='KNN', the spot is connected to its first k_cutoff nearest neighbors.
+
+    Returns
+    -------
+    The spatial networks are saved in adata.uns['Spatial_Net']
+    """
+
+    assert (model in ['Radius', 'KNN'])
+    if verbose:
+        print('------Calculating spatial graph...')
+    # coor = pd.DataFrame(adata.obs[['pixel_x', 'pixel_y']])
+    assert 'spatial' in adata.obsm.keys()
+    coor = pd.DataFrame(adata.obsm['spatial'])
+    coor.index = adata.obs.index
+    coor.columns = ['imagerow', 'imagecol']
+
+    nbrs = sklearn.neighbors.NearestNeighbors(
+        # n_neighbors=max_neigh + 1, algorithm='ball_tree').fit(coor)
+        n_neighbors=max_neigh + 1, algorithm='auto').fit(coor)
+    distances, indices = nbrs.kneighbors(coor)
+    if model == 'KNN':
+        indices = indices[:, 1:k_cutoff + 1]
+        distances = distances[:, 1:k_cutoff + 1]
+    if model == 'Radius':
+        indices = indices[:, 1:]
+        distances = distances[:, 1:]
+
+    KNN_list = []
+    for it in range(indices.shape[0]):
+        KNN_list.append(pd.DataFrame(zip([it] * indices.shape[1], indices[it, :], distances[it, :])))
+    KNN_df = pd.concat(KNN_list)
+    KNN_df.columns = ['Cell1', 'Cell2', 'Distance']
+
+    Spatial_Net = KNN_df.copy()
+    if model == 'Radius':
+        Spatial_Net = KNN_df.loc[KNN_df['Distance'] < rad_cutoff,]
+    id_cell_trans = dict(zip(range(coor.shape[0]), np.array(coor.index), ))
+    Spatial_Net['Cell1'] = Spatial_Net['Cell1'].map(id_cell_trans)
+    Spatial_Net['Cell2'] = Spatial_Net['Cell2'].map(id_cell_trans)
+
+    if verbose:
+        print('The graph contains %d edges, %d cells.' % (Spatial_Net.shape[0], adata.n_obs))
+        print('%.4f neighbors per cell on average.' % (Spatial_Net.shape[0] / adata.n_obs))
+    adata.uns['Spatial_Net'] = Spatial_Net
+
+    #########
+    X = pd.DataFrame(adata.layers['counts'].toarray()[:, ], index=adata.obs.index, columns=adata.var.index)
+    cells = np.array(X.index)
+    cells_id_tran = dict(zip(cells, range(cells.shape[0])))
+    if 'Spatial_Net' not in adata.uns.keys():
+        raise ValueError("Spatial_Net is not existed! Run Cal_Spatial_Net first!")
+        
+    Spatial_Net = adata.uns['Spatial_Net']
+    G_df = Spatial_Net.copy()
+    G_df['Cell1'] = G_df['Cell1'].map(cells_id_tran)
+    G_df['Cell2'] = G_df['Cell2'].map(cells_id_tran)
+    G = sp.sparse.coo_matrix((np.ones(G_df.shape[0]), (G_df['Cell1'], G_df['Cell2'])), shape=(adata.n_obs, adata.n_obs))
+    G = G + sp.eye(G.shape[0])  # self-loop
+    adata.uns['adj'] = G
+
+
+def Stats_Spatial_Net(adata, result_dir):
+    import matplotlib.pyplot as plt
+    Num_edge = adata.uns['Spatial_Net']['Cell1'].shape[0]
+    Mean_edge = Num_edge / adata.shape[0]
+    plot_df = pd.value_counts(pd.value_counts(adata.uns['Spatial_Net']['Cell1']))
+    plot_df = plot_df / adata.shape[0]
+    fig, ax = plt.subplots(figsize=[3, 2])
+    plt.ylabel('Percentage')
+    plt.xlabel('')
+    plt.title('Number of Neighbors (Mean=%.2f)' % Mean_edge)
+    ax.bar(plot_df.index, plot_df)
+    plt.savefig(result_dir+os.sep+'spatial_net_stats.png')
+    plt.close()
+
+
+def rbf_adjacency_matrix(features, sigma=1.0, sparsity=0.1):
+    """
+    Builds an adjacency matrix using the RBF kernel.
+
+    Args:
+        features (np.ndarray): Node features of shape (N, F) where N is the number of nodes.
+        sigma (float): Bandwidth parameter for the RBF kernel.
+        threshold (float): Minimum weight to consider an edge (optional).
+
+    Returns:
+        np.ndarray: Adjacency matrix of shape (N, N).
+    """
+    assert sparsity >= 0 and sparsity <= 1
+    # Compute squared Euclidean distance
+    distances = np.sum(features**2, axis=1)[:, None] + np.sum(features**2, axis=1) - 2 * np.dot(features, features.T)
+    # Apply the RBF kernel
+    adjacency_matrix = np.exp(-distances / (2 * sigma**2))
+    # Optional: Apply threshold to sparsify the graph
+    threshold = np.percentile(adjacency_matrix, 100*(1-sparsity))
+    adjacency_matrix[adjacency_matrix < threshold] = 0
+    return adjacency_matrix
