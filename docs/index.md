@@ -42,20 +42,22 @@ SpaDOT -h
 You should see the following console output:
 
 ```
-usage: SpaDOT [-h] {preprocess,train,predict} ...
+usage: SpaDOT [-h] {preprocess,train,analyze} ...
 
 SpaDOT: Spatial DOmain Transition detection for spatiotemporal transcriptomics studies.
 
 positional arguments:
-  {preprocess,train,predict}
+  {preprocess,train,analyze}
                         sub-command help.
     preprocess          Perform data preprocessing and feature selection (optional).
     train               Train SpaDOT model and obtain latent space.
-    predict             Use obtained latent space to perform domain detection and domain dynamics detection.
+    analyze             Use obtained latent space to perform domain detection and domain dynamics detection.
 
 optional arguments:
   -h, --help            show this help message and exit
 ```
+
+In each module, you can use `-h` to show related help pages. For example, `SpaDOT preprocess -h`.
 
 **Step 4 (Optional):** If you would like to use SpaDOT with-in program, you can do:
 
@@ -64,41 +66,80 @@ import SpaDOT
 
 # load your own data into anndata, with `timepoint` indicating from which time point the data is collected. 
 preprocessed_adata = SpaDOT.preprocess(adata)
+SpaDOT.train(preprocessed_adata, SpaDOT.config) # train with default configuration
+# load obtained latent data and analyze
+latent_adata = anndata.read_h5ad('./latent.h5ad')
+SpaDOT.analyze(latent_adata)
+```
 
+---
+
+### Example 1: developing chicken heart
+
+The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. In this dataset, SpaDOT accurately identifies valvulogenesis - a valve splits into artrioventricular valve and semilunar valve at Day 14.
+
+**Step 1: obtain example data**
+
+We first downloaded the data from [GSE149457](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457) and selected 
+```
+GSM4502482_chicken_heart_spatial_RNAseq_D4_filtered_feature_bc_matrix.h5
+GSM4502483_chicken_heart_spatial_RNAseq_D7_filtered_feature_bc_matrix.h5
+GSM4502484_chicken_heart_spatial_RNAseq_D10_filtered_feature_bc_matrix.h5
+GSM4502485_chicken_heart_spatial_RNAseq_D14_filtered_feature_bc_matrix.h5
+```
+We used the script `process_ChickenHeart.py` provided [here](https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py) to preprocess the data by integrating them into one anndata with `timepoint` in anndata observations (obs) as one-hot encoder indicating four time points, `0`, `1`, `2` and `3` indicate Day 4, Day 7, Day 10 and Day 14, respectively. We have also put the spatial coordinates with keyword `spatial` as a numpy array inside anndata observation metadata (obsm).
+
+After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHeart.h5ad`.
+
+**Step 2: perform data preprocessing**
+
+After obtaining `ChickenHeart.h5ad`, we the perform the data preprocessing. Here, we use command line as demonstration:
+
+```
+SpaDOT preprocess --data ./ChickenHeart.h5ad
+```
+
+If spatially variable genes selection is not desired, you can add an additional option. However, we again recommend having feature selection to generate better results.
+
+```
+SpaDOT preprocess --data ./ChickenHeart.h5ad --feature_selection False
+```
+
+After data preprocessing, we will obtain `processed_ChickenHeart.h5ad` in the directory.
+
+**Step 3: train SpaDOT to obtain latent representations**
+
+Then, we can train the SpaDOT model to obtain latent representations by using 
+
+```
+SpaDOT train --data preprocessed_ChickenHeart.h5ad
+```
+
+Here, we train with default parameters. For overriding default parameters purpose, a `yaml` file is needed. We have provided an example `new_params.yaml` with our default parameters for your reference. Again, we do recommend using our default parameters to achieve the best performance.
+
+```
+SpaDOT train --data preprocessed_ChickenHeart.h5ad --configuration new_params.yaml
+```
+
+**Step 4: infer spatial domains and domain dynamics based on region number**
+
+Once the training stage finishes, we can obtain spatial domains and generate domain dynamics. If we have prior knowledge on how many domains we might have (given by the original study), we can run:
+
+```
+SpaDOT analyze --data latent.h5ad --n_clusters 5,7,7,6
 ```
 
 
 
-
-
----
-
-
-
-
-
-
-
-### Example 1: developing chicken heart
-
-The developing chicken heart is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. 
-
-**Step 1: obtain example data**
-
-We first downloaded the data from [GSE149457](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457) and selected `GSM4502482_chicken_heart_spatial_RNAseq_D4_filtered_feature_bc_matrix.h5`, `GSM4502483_chicken_heart_spatial_RNAseq_D7_filtered_feature_bc_matrix.h5`, `GSM4502484_chicken_heart_spatial_RNAseq_D10_filtered_feature_bc_matrix.h5` and `GSM4502485_chicken_heart_spatial_RNAseq_D14_filtered_feature_bc_matrix.h5`. For your convenience, I used the script `process_ChickenHeart.py` provided [here]() to preprocess the data by integrating them into one anndata with `timepoint` in anndata observations (obs) as one-hot encoder indicating four time points, `0`, `1`, `2` and `3` indicate Day 4, Day 7, Day 10 and Day 14, respectively. I have also put the spatial coordinates with keyword `spatial` as a numpy array inside anndata observation metadata (obsm).
-
-**Step 2: perform data preprocessing**
-
-
-
-**Step 3: train SpaDOT to obtain latent representations**
-
-
-
-**Step 4: infer spatial domains and domain dynamics based on region number**
-
-
 **Step 5: infer spatial domains and domain dynamics based on Elbow method (Optional)**
+
+Or, we can leave out the `--n_clusters` option, then SpaDOT would automatically run Elbow method to determine the number of clusters
+
+```
+SpaDOT analyze --data latent.h5ad
+```
+
+In the end, you will obtain a colored spatial domains as well as corresponding domain transition dot plots.
 
 
 
