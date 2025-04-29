@@ -1,7 +1,6 @@
 ## SpaDOT Tutorial
 
 **Authors:** 
-
 [Wenjing Ma](https://marvinquiet.github.io/) (wenjinma@umich.edu), Department of Biostatistics, University of Michigan
 Siyu Hou, Department of Biostatistics, University of Michigan
 [Lulu Shang](https://lulushang.org/), Department of Biostatistics, MD Anderson Cancer Center
