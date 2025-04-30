@@ -8,7 +8,37 @@ import pandas as pd
 import scanpy as sc
 from sklearn.preprocessing import StandardScaler
 
+def obtain_loc_tp_info(adata):
+    '''
+    Obtain the location and time point information from the adata object.
+    The location is standardized and concatenated with the time point information.
+    The time point information is one-hot encoded.
+    '''
+    adata.obs['timepoint_numeric'] = adata.obs['timepoint'].astype('category').cat.codes
+    time_info = np.array(adata.obs['timepoint_numeric']).astype('int')
+    time_mat = np.zeros((time_info.size, time_info.max()+1))
+    time_mat[np.arange(time_info.size), time_info] = 1
+    n_tp = time_mat.shape[1]
+    # scale locations per time point
+    loc = adata.obsm['spatial']
+    loc_scaled = np.zeros(loc.shape, dtype=np.float64)
+    for i in range(n_tp):
+        scaler = StandardScaler()
+        tp_loc = loc[time_mat[:,i]==1, :]
+        tp_loc = scaler.fit_transform(tp_loc)
+        loc_scaled[time_mat[:,i]==1, :] = tp_loc
+    loc = loc_scaled
+    loc = np.concatenate((loc, time_mat), axis=1)
+    return loc, time_mat, n_tp
+
+
+
+# 
 def preprocess_adata(args, adata, get_SVG=False):
+    if args.feature_selection:
+        SVGs = select_SVGs(args, adata)
+
+
     SVG_genes = select_SVGs(args, adata, get_SVG=get_SVG)
     adata = adata[:, SVG_genes].copy()
     # filter genes
@@ -37,58 +67,9 @@ def preprocess_adata(args, adata, get_SVG=False):
     concat_adata = anndata.concat(new_tp_adata_list)
     return concat_adata
 
-def obtain_loc_batch_info(concat_adata):
-    ## list locations
-    concat_adata.obs['timepoint_numeric'] = concat_adata.obs['timepoint'].astype('category').cat.codes
-    batch_info = np.array(concat_adata.obs['timepoint_numeric']).astype('int')
-    batch_mat = np.zeros((batch_info.size, batch_info.max()+1))
-    batch_mat[np.arange(batch_info.size), batch_info] = 1
-    n_batch = batch_mat.shape[1]
-    # scale locations per batch
-    loc = concat_adata.obs.loc[:, ['pixel_x', 'pixel_y']].to_numpy()
-    loc_scaled = np.zeros(loc.shape, dtype=np.float64)
-    for i in range(n_batch):
-        scaler = StandardScaler()
-        b_loc = loc[batch_mat[:,i]==1, :]
-        b_loc = scaler.fit_transform(b_loc)
-        loc_scaled[batch_mat[:,i]==1, :] = b_loc
-    loc = loc_scaled
-    loc = np.concatenate((loc, batch_mat), axis=1)
-    return loc, batch_mat
 
-def get_SVGs(args, adata):
-    adata.write_h5ad(args.result_dir+os.sep+'adata.h5ad')
-    # Rscript /media/sda/wenjinma/projects/spatialATAC-explore/explore_spatialPCA_simulation/spaDOT_pipelines/spaDOT_pipeline/run_SPARKX.R --result_dir args.result_dir
-    # run command
-    print('Running SPARKX...')
-    os.system('Rscript run_SPARKX.R --result_dir '+args.result_dir)
 
-def select_SVGs(args, adata, get_SVG=True):
-    if get_SVG:
-        get_SVGs(args, adata)
-    ## select SVGs by cluster
-    tp_SVGs = []
-    for tp in args.timepoints:
-        tp_SVGs_cluster = pd.read_csv(args.result_dir+os.sep+str(tp)+'_SVG_sparkx_clustered_louvain.csv', header=0, index_col=0)
-        tp_SVGs.append(tp_SVGs_cluster)
-    min_idx = min(range(len(tp_SVGs)), key=lambda i: len(tp_SVGs[i]))
-    min_tp_SVG_len = len(tp_SVGs[min_idx])
-    SVG_genes = tp_SVGs[min_idx].index.tolist()
-    for idx, tp_SVG in enumerate(tp_SVGs):
-        if idx == min_idx: continue
-        tp_SVG_num_clusters = len(set(tp_SVG['cluster']))
-        tp_SVG_top = tp_SVG.sort_values(by='adjustedPval', ascending=True).groupby('cluster').head(max(100, round(min_tp_SVG_len/tp_SVG_num_clusters)))
-        SVG_genes.extend(tp_SVG_top.index.tolist())
-    SVG_genes = list(set(SVG_genes))
-    SVG_genes.sort()
-    # --- select all SVGs
-    # SVG_genes = []
-    # for tp in args.timepoints:
-    #     tp_SVGs_cluster = pd.read_csv(args.result_dir+os.sep+str(tp)+'_SVG_sparkx.csv', header=0, index_col=0)
-    #     SVG_genes.extend(tp_SVGs_cluster.index.tolist())
-    # SVG_genes = list(set(SVG_genes))
-    # SVG_genes.sort()
-    return SVG_genes
+
 
 
 def Cal_Spatial_Net(adata, rad_cutoff=None, k_cutoff=None,

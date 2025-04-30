@@ -80,14 +80,24 @@ The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is me
 
 **Step 1: obtain example data**
 
-We first downloaded the data from [GSE149457](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457) and selected 
+First, we downloaded the spatial transcritpomics data from [GSE149457](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457) and selected 
 ```
 GSM4502482_chicken_heart_spatial_RNAseq_D4_filtered_feature_bc_matrix.h5
 GSM4502483_chicken_heart_spatial_RNAseq_D7_filtered_feature_bc_matrix.h5
 GSM4502484_chicken_heart_spatial_RNAseq_D10_filtered_feature_bc_matrix.h5
 GSM4502485_chicken_heart_spatial_RNAseq_D14_filtered_feature_bc_matrix.h5
 ```
-We used the script `process_ChickenHeart.py` provided [here](https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py) to preprocess the data by integrating them into one anndata with `timepoint` in anndata observations (obs) as one-hot encoder indicating four time points, `0`, `1`, `2` and `3` indicate Day 4, Day 7, Day 10 and Day 14, respectively. We have also put the spatial coordinates with keyword `spatial` as a numpy array inside anndata observation metadata (obsm).
+
+Second, we downloaded spatial coordinates from the analysis code shared by the paper on [Github](https://github.com/madhavmantri/chicken_heart/tree/master/data/chicken_heart_spatial_RNAseq_processed):
+
+```
+chicken_heart_spatial_RNAseq_D4_tissue_positions_list.csv
+chicken_heart_spatial_RNAseq_D7_tissue_positions_list.csv
+chicken_heart_spatial_RNAseq_D10_tissue_positions_list.csv
+chicken_heart_spatial_RNAseq_D14_tissue_positions_list.csv
+```
+
+Third, we used the script `process_ChickenHeart.py` provided [here](https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py) to preprocess the data by integrating them into one anndata with `timepoint` in anndata observations (obs) as one-hot encoder indicating four time points, `0`, `1`, `2` and `3` indicate Day 4, Day 7, Day 10 and Day 14, respectively. We have also put the spatial coordinates with keyword `spatial` as a numpy array inside anndata observation metadata (obsm).
 
 After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHeart.h5ad`.
 

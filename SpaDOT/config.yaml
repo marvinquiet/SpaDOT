@@ -1,0 +1,54 @@
+# General training parameters
+maxiter: 100  # Maximum number of iterations for training
+ot_epoch: 50  # Number of epochs when optimal transport loss is introduced
+# kmeans_epoch: 1  # Number of epochs for k-means clustering
+batch_size: 512  # Batch size for training
+z_dim: 20  # Dimensionality of the latent space
+n_clusters: 10  # Number of clusters for clustering
+
+# Learning rate and model architecture
+lr: 0.0003  # Learning rate for the AdamW optimizer
+svgp_encoder_layers:  # List of layer sizes for the encoder
+  - 256
+  - 64
+gat_encoder_hidden: 512  # Hidden size for GAT encoder
+decoder_layers:  # List of layer sizes for the decoder
+  - 64
+  - 256
+
+# SVGP-related parameters
+kernel_type: "Gaussian"  # Type of kernel used in SVGP
+kernel_scale: 0.1 # Length scale of Gaussian RBF kernel
+inducing_point_nums: 1200  # Number of inducing points for SVGP
+lambda1: 0.1  # Weight SVGP Reconstruction loss
+beta1: 1.0  # Weight for SVGP KL loss
+
+# GAT-related parameters
+lambda2: 0.0  # Weight for GAT Reconstruction loss
+beta2: 0.0001  # Weight for GAT KL loss
+
+# Alignment and loss weights
+omiga1: 0.1  # Weight for alignment loss
+omiga2: 0.1  # Weight for K-Means loss
+omiga3: 1.0  # Weight for OT loss
+
+# OT configuration, refer to: https://github.com/broadinstitute/wot/
+ot_config:
+  growth_iters: 3  # Number of growth iterations for OT
+  ot_epochs: 10  # Number of epochs for OT
+  epsilon: 0.05  # Entropic regularization parameter for OT
+  lambda1: 0.1  # Regularization parameter for OT row imbalance
+  lambda2: 5  # Regularization parameter for OT column imbalance
+  epsilon0: 1  # Initial value of epsilon for OT
+  tau: 10000  # Scaling factor for OT
+  scaling_iter: 3000  # Number of scaling iterations for OT
+  inner_iter_max: 50  # Maximum number of inner iterations for OT
+  tolerance: 1e-8  # Tolerance for convergence in OT
+  max_iter: 10000000  # Maximum number of iterations for OT
+  batch_size: 5  # Batch size for OT
+  extra_iter: 1000  # Number of extra iterations for OT
+  numItermax: 1000000  # Maximum number of iterations for OT solver
+  use_Py: false  # Whether to use Python implementation for OT
+  use_C: true  # Whether to use C implementation for OT
+  profiling: false  # Whether to enable profiling for OT
+  method: "waddington"  # Method used for OT

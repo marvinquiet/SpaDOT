@@ -30,12 +30,9 @@ SpaDOT requires the following:
 - [rpy2](https://rpy2.github.io/) (v3.5.17)
 - `cuda toolkit` and `nvidia cudnn` when using GPU resources, more information can be found [here](https://towardsdatascience.com/setting-up-tensorflow-gpu-with-cuda-and-anaconda-onwindows-2ee9c39b5c44)
 
-```
-Note: If using GPU resources, you will also need to install the CUDA Toolkit and NVIDIA cuDNN libraries. Detailed setup instructions can be found here.
-```
+**Note:** If using GPU resources, you might also need to install the CUDA Toolkit and NVIDIA cuDNN libraries. Detailed setup instructions can be found [here](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/). Please make sure to install a compatible version for PyTorch.
 
 To fully leverage SpaDOT’s capabilities, installing [R](https://www.r-project.org/) and the [SPARK-X](https://xzhoulab.github.io/SPARK/) package is recommended for selecting spatially variable genes.
-
 
 ## Installation
 

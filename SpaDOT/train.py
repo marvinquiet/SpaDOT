@@ -2,7 +2,7 @@ import torch
 from torch import optim
 from tqdm.auto import tqdm
 import pandas as pd
-from .trainer import beta_cycle_linear, compute_kmeans_loss, compute_OT_loss, update_Kmeans, update_OT_matrix, do_eval
+from .train import beta_cycle_linear, compute_kmeans_loss, compute_OT_loss, update_Kmeans, update_OT_matrix, do_eval
 from time import time
 import random
 
