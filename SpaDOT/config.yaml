@@ -5,6 +5,7 @@ ot_epoch: 50  # Number of epochs when optimal transport loss is introduced
 batch_size: 512  # Batch size for training
 z_dim: 20  # Dimensionality of the latent space
 n_clusters: 10  # Number of clusters for clustering
+seed: 1993 # Random seed for reproducibility
 
 # Learning rate and model architecture
 lr: 0.0003  # Learning rate for the AdamW optimizer
@@ -12,6 +13,7 @@ svgp_encoder_layers:  # List of layer sizes for the encoder
   - 256
   - 64
 gat_encoder_hidden: 512  # Hidden size for GAT encoder
+gat_attention_heads: 4  # Number of attention heads in GAT
 decoder_layers:  # List of layer sizes for the decoder
   - 64
   - 256
@@ -24,8 +26,9 @@ lambda1: 0.1  # Weight SVGP Reconstruction loss
 beta1: 1.0  # Weight for SVGP KL loss
 
 # GAT-related parameters
-lambda2: 0.0  # Weight for GAT Reconstruction loss
 beta2: 0.0001  # Weight for GAT KL loss
+knn_cutoff: 6
+max_neighbors: 30  # Maximum number of neighbors for GAT
 
 # Alignment and loss weights
 omiga1: 0.1  # Weight for alignment loss
@@ -38,12 +41,12 @@ ot_config:
   ot_epochs: 10  # Number of epochs for OT
   epsilon: 0.05  # Entropic regularization parameter for OT
   lambda1: 0.1  # Regularization parameter for OT row imbalance
-  lambda2: 5  # Regularization parameter for OT column imbalance
+  lambda2: 5.0  # Regularization parameter for OT column imbalance
   epsilon0: 1  # Initial value of epsilon for OT
   tau: 10000  # Scaling factor for OT
   scaling_iter: 3000  # Number of scaling iterations for OT
   inner_iter_max: 50  # Maximum number of inner iterations for OT
-  tolerance: 1e-8  # Tolerance for convergence in OT
+  tolerance: 0.00000001  # Tolerance for convergence in OT
   max_iter: 10000000  # Maximum number of iterations for OT
   batch_size: 5  # Batch size for OT
   extra_iter: 1000  # Number of extra iterations for OT

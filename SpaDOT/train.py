@@ -1,90 +1,55 @@
+import os
+import anndata
 import torch
-from torch import optim
-from tqdm.auto import tqdm
-import pandas as pd
-from .train import beta_cycle_linear, compute_kmeans_loss, compute_OT_loss, update_Kmeans, update_OT_matrix, do_eval
-from time import time
-import random
 
-class Trainer:
-    def __init__(self, model, args, logging):
-        self.model = model
-        self.args = args
-        self.logging = logging
-        self.optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
-        self.loss_dict = {}
-        self.loss_names = ['elbo', 'SVGP_recon', 'SVGP_KL', 'GAT_recon', 'GAT_KL', 'alignment', 'KMeans', 'OT']
+from utils import _train_utils, _utils
 
-    def train(self, adata):
-        self._initialize_loss_dict()
-        beta1s = beta_cycle_linear(self.args.maxiter, stop=self.args.beta1)
-        tp_indexed_list = list(enumerate(self.args.timepoints))
-        train_starttime = time()
-        for epoch in tqdm(range(self.args.maxiter)):
-            self.logging.info(f'--- Epoch {epoch + 1}')
-            self.model.beta1 = beta1s[epoch]
-            self.model.beta2 = self.args.beta2
-            self.logging.info(f'Model beta1: {self.model.beta1:.6f}, Model beta2: {self.model.beta2:.6f}')
-            self.model.train()
-            tp_loss_dict = self._train_epoch(tp_indexed_list, epoch)
-            # Log epoch losses
-            self._log_epoch_losses(epoch, tp_loss_dict)
-            # Update KMeans and OT matrix
-            update_Kmeans(self.model, self.args)
-            if (epoch + 1) % self.args.ot_config["ot_epochs"] == 0:
-                update_OT_matrix(self.model, self.args)
-        self.logging.info(f'Training time: {int(time() - train_starttime)} seconds.')
-        pd.DataFrame.from_dict(self.loss_dict).to_csv(self.args.result_dir + os.sep + 'loss.csv')
-        return self.model
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')  
+def train(args):
+    # --- load data ---
+    print("Loading data...")
+    adata = anndata.read_h5ad(args.data)
+    model_config = _utils.load_model_config(args)
+    # add adata related parameters to model_config
+    model_config['input_dim'] = adata.n_vars
+    tps = adata.obs['timepoint'].unique()
+    tps.sort()
+    model_config['timepoints'] = tps
+    # add device and dtype to model_config
+    model_config['device'] = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    model_config['dtype'] = torch.float64
 
-    def _initialize_loss_dict(self):
-        for epoch in range(self.args.maxiter):
-            self.loss_dict[epoch] = {name: 0 for name in self.loss_names}
+    _utils.set_seed(model_config['seed'])
+    # obtain inducing points, graph adjacency matrix, and dataloaders
+    print("Preparing data...")
+    dataloader_dict = _train_utils.prepare_dataloader(adata, model_config)
+    _utils._save_inducing_points(args, dataloader_dict['inducing_points']) # save inducing points
 
-    def _train_epoch(self, tp_indexed_list, epoch):
-        tp_loss_dict = {tp: {name: 0 for name in self.loss_names} for tp in self.args.timepoints}
-        random.shuffle(tp_indexed_list)
+    # train model
+    print("Training model...")
+    SpaDOT_model, loss_df = _train_utils.train_SpaDOT(dataloader_dict, model_config)
+    loss_df.to_csv(args.output_dir + os.sep + 'loss.csv')
+    if args.save_model:
+        torch.save(SpaDOT_model.state_dict(), args.output_dir+os.sep+'SpaDOT_model.pth')
+        print("Model saved to %s" % (args.output_dir))
+    # obtain the latent representation
+    latent_adata = _train_utils.get_latent(SpaDOT_model, model_config, adata, dataloader_dict)
+    latent_adata.write_h5ad(args.output_dir+os.sep+args.prefix+'latent_adata.h5ad')
 
-        for tp_i, tp in tp_indexed_list:
-            tp_dataloader = self.model.dataloaders_dict[tp]
-            tp_adj = self.model.adj_dict[tp]
-            for batch in tp_dataloader:
-                self._train_batch(batch, tp, tp_adj, tp_loss_dict[tp])
 
-        for tp in self.args.timepoints:
-            for name in self.loss_names:
-                tp_loss_dict[tp][name] /= len(self.model.dataloaders_dict[tp])
-                self.loss_dict[epoch][name] += tp_loss_dict[tp][name]
-
-        return tp_loss_dict
-
-    def _train_batch(self, batch, tp, tp_adj, tp_loss_dict):
-        y_batch, x_batch, tp_ix, edge_index_batch = batch.x, batch.loc, batch.data_index, batch.edge_index
-        x_batch, y_batch, edge_index_batch = x_batch.to(self.model.device), y_batch.to(self.model.device), edge_index_batch.to(self.model.device)
-        tp_ix, adj_idx = tp_ix[:batch.batch_size], batch.n_id[:batch.batch_size]
-
-        # Forward pass
-        tp_SVGP_recon_val, tp_SVGP_KL_val, tp_GAT_KL_val, tp_alignment_val, tp_p_m= \
-            self.model.forward(x=x_batch, y=y_batch, edge_index=edge_index_batch, tp=tp, batch_size=batch.batch_size)
-
-        # Compute losses
-        tp_KMeans_val = compute_kmeans_loss(self.model, tp, tp_ix, tp_p_m) if epoch >= self.args.kmeans_epoch else 0
-        tp_OT_val = compute_OT_loss(self.model, tp, tp_ix, tp_p_m, self.args.timepoints[tp_i - 1]) if epoch >= self.args.ot_epoch and tp_i != 0 else 0
-
-        tp_elbo_val = self.args.lambda1 * tp_SVGP_recon_val - self.model.beta1 * tp_SVGP_KL_val + self.model.beta2 * tp_GAT_KL_val
-        tp_elbo_val += self.args.omiga1 * tp_alignment_val + self.args.omiga2 * tp_KMeans_val + self.args.omiga3 * tp_OT_val
-
-        # Backward pass
-        self.optimizer.zero_grad()
-        tp_elbo_val.backward(retain_graph=True)
-        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.gradient_clipping)
-        self.optimizer.step()
-
-        # Update losses
-        for name in self.loss_names:
-            tp_loss_dict[name] += locals()[f'tp_{name}_val'].detach().cpu().item()
-
-    def _log_epoch_losses(self, epoch, tp_loss_dict):
-        self.logging.info(f"Epoch {epoch + 1} Losses:")
-        for tp in self.args.timepoints:
-            self.logging.info(f"Timepoint {tp}: {tp_loss_dict[tp]}")
+if __name__ == "__main__":
+    data_dir = "./examples"
+    # create arguments for testing
+    class Args:
+        data = os.path.join(data_dir, "preprocessed_ChickenHeart.h5ad")
+        prefix = ""
+        config = None
+        save_model = True
+    args = Args()
+    # create output directory if not exists
+    if 'output_dir' not in args.__dict__:
+        args.output_dir = os.path.dirname(args.data)
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    # train SpaDOT model
+    train(args)

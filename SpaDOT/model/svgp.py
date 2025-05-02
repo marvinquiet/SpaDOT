@@ -3,16 +3,32 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SVGP(nn.Module):
-    def __init__(self, config, initial_inducing_points, N_train, kernel_scale):
+    def __init__(self, model_config, inducing_points, N_train, jitter=1e-2):
+        '''
+        SVGP model for variational inference in Gaussian processes.
+        Parameters
+        ----------
+        model_config : dict
+            Configuration dictionary containing model parameters.
+        inducing_points : np.ndarray
+            Inducing points for the SVGP model.
+        N_train : int
+            Number of training points.
+        jitter : float
+            Jitter term to add to the diagonal of covariance matrices for numerical stability.
+        '''
         super(SVGP, self).__init__()
-        self.config = config
+        self.model_config = model_config
         self.N_train = N_train
+        self.jitter = jitter
         # Inducing points
-        self.inducing_index_points = (
-            torch.tensor(initial_inducing_points, dtype=self.config.dtype).to(self.config.device)
-        )
+        self.inducing_index_points = torch.tensor(inducing_points, 
+                                                  dtype=model_config['dtype']).to(model_config['device'])
         # Kernel
-        self.kernel = Kernel(kernel_type=self.config.kernel_type, scale=kernel_scale, dtype=self.config.dtype, device=self.config.device).to(self.config.device)
+        self.kernel = Kernel(kernel_type=model_config['kernel_type'], 
+                             scale=model_config['kernel_scale'], 
+                             dtype=model_config['dtype'],
+                             device=model_config['device'])
 
 
     def _add_diagonal_jitter(self, matrix, jitter):
@@ -32,7 +48,7 @@ class SVGP(nn.Module):
     def variational_loss(self, x, y, noise, mu_hat, A_hat):
         b, m = x.shape[0], self.inducing_index_points.shape[0]
         K_mm = self.kernel_matrix(self.inducing_index_points, self.inducing_index_points)
-        K_mm_inv = torch.linalg.inv(self._add_diagonal_jitter(K_mm, self.config.jitter))
+        K_mm_inv = torch.linalg.inv(self._add_diagonal_jitter(K_mm, self.jitter))
 
         K_nn = self.kernel_matrix(x, x, diag_only=True)
         K_nm = self.kernel_matrix(x, self.inducing_index_points)
@@ -91,10 +107,10 @@ class SVGP(nn.Module):
 Kernel same as in SpatialPCA
 '''
 class Kernel(nn.Module):
-    def __init__(self, kernel_type='Gaussian', scale=0.1, dtype=torch.float64, device="cpu"):
+    def __init__(self, kernel_type='Gaussian', scale=0.1, dtype=torch.float64, device='cpu'):
         super(Kernel, self).__init__()
         self.kernel_type = kernel_type
-        self.scale = torch.tensor([scale], dtype=dtype).to(device)
+        self.scale = torch.tensor([scale], dtype=dtype, device=device)
 
     def forward(self, x, y):
         d = torch.cdist(x, y, p=2) # Euclidean distance
