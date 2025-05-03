@@ -15,7 +15,10 @@ Siyu Hou, Department of Biostatistics, University of Michigan
 
 Spatiotemporal transcriptomics is an emerging and powerful approach that adds a temporal dimension to traditional spatial transcriptomics, thus enabling the characterization of dynamic changes in tissue architecture during development or disease progression. Tissue architecture is generally organized into spatial domains -- regions within a tissue characterized by relatively similar gene expression profiles that often correspond to distinct biological functions. Crucially, these spatial domains are not static; rather, they undergo complex temporal dynamics during development, differentiation, and disease progression, resulting in emergence, disappearance, splitting, and merging of domains over time. Therefore, we develop SpaDOT (**Spa**tial **DO**main **T**ransition detection), a novel and scalable machine learning method for identifying spatial domains and inferring their temporal dynamics in spatiotemporal transcriptomics studies.
 
-![img](workflow.png)
+<!-- ![img](workflow.png) -->
+<p align="center">
+  <img src="workflow.png" alt="img">
+</p>
 
 (The figure illustrates how SpaDOT works. SpaDOT adopts an integration of two complementary encoders, a Gaussian Process kernel and a Graph Attention Transformer, within one variational autoencoder framework to obtain spatially aware latent representations. The latent representations are further constrained by clustering within each time point and optimal transport (OT) coupling across time points, enabling SpaDOT to identify spatial domains and capture domain transition dynamics. )
 
@@ -103,19 +106,22 @@ After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHea
 
 **Step 2: perform data preprocessing**
 
-After obtaining `ChickenHeart.h5ad`, we the perform the data preprocessing. Here, we use command line as demonstration:
+After obtaining `ChickenHeart.h5ad`, we the perform the data preprocessing. Here, we use command line as demonstration.
 
 ```
+Rscript run_SPARKX.R --data ./ChickenHeart.h5ad
 SpaDOT preprocess --data ./ChickenHeart.h5ad
 ```
+`run_SPARKX.R` can be found [here](https://github.com/marvinquiet/SpaDOT/blob/main/SpaDOT/Rcode/run_SPARKX.R).
 
-If spatially variable genes selection is not desired, you can add an additional option. However, we again recommend having feature selection to generate better results.
+
+If spatially variable genes selection is not desired, you can add an additional option `--feature_selection False`, which would use all genes from the data. However, we again recommend having feature selection to generate better results.
 
 ```
 SpaDOT preprocess --data ./ChickenHeart.h5ad --feature_selection False
 ```
 
-After data preprocessing, we will obtain `processed_ChickenHeart.h5ad` in the directory.
+After data preprocessing, we will have `processed_ChickenHeart.h5ad` in the directory.
 
 **Step 3: train SpaDOT to obtain latent representations**
 
@@ -125,10 +131,10 @@ Then, we can train the SpaDOT model to obtain latent representations by using
 SpaDOT train --data preprocessed_ChickenHeart.h5ad
 ```
 
-Here, we train with default parameters. For overriding default parameters purpose, a `yaml` file is needed. We have provided an example `new_params.yaml` with our default parameters for your reference. Again, we do recommend using our default parameters to achieve the best performance.
+Here, we train with default parameters. For overriding default parameters purpose, a `yaml` file is needed. We have provided an example [config.yaml](https://github.com/marvinquiet/SpaDOT/blob/main/SpaDOT/config.yaml) with our default parameters for your reference. Again, we do recommend using our default parameters to achieve the best performance.
 
 ```
-SpaDOT train --data preprocessed_ChickenHeart.h5ad --configuration new_params.yaml
+SpaDOT train --data preprocessed_ChickenHeart.h5ad --config config.yaml
 ```
 
 **Step 4: infer spatial domains and domain dynamics based on region number**
@@ -139,7 +145,12 @@ Once the training stage finishes, we can obtain spatial domains and generate dom
 SpaDOT analyze --data latent.h5ad --n_clusters 5,7,7,6
 ```
 
+Output domains:
 
+
+| Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
+|-----------|-------|-------|--------|--------|
+| Spatial Domains | ![Day 4](0_domains.png) | ![Day 7](1_domains.png) | ![Day 10](2_domains.png) | ![Day 14](3_domains.png) | 
 
 **Step 5: infer spatial domains and domain dynamics based on Elbow method (Optional)**
 

@@ -15,6 +15,7 @@ suppressPackageStartupMessages({
     library(bluster)
 })
 
+set.seed(1993)
 # set optparse
 option_list = list(
     make_option(c("--data"), type='character', default=NULL, help="Path to anndata object."),
@@ -36,11 +37,12 @@ if (is.null(opt$result_dir)) {
 # load data
 adata = read_h5ad(opt$data)
 obj = CreateSeuratObject(counts = t(adata$X), meta.data = adata$obs)
+# --- maybe not removing during SVG, but during DEG analysis, refererence: https://www.biostars.org/p/355658/ --- 
 # remove ribosomal genes if any
-ribosomal_genes = grep("^Rp[sl]|^RP[SL]", rownames(obj), value=T)
-obj =  obj[!rownames(obj) %in% ribosomal_genes, ]
-mt_genes = grep("^mt-|^MT-", rownames(obj), value=T)
-obj =  obj[!rownames(obj) %in% mt_genes, ]
+# ribosomal_genes = grep("^Rp[sl]|^RP[SL]", rownames(obj), value=T)
+# obj =  obj[!rownames(obj) %in% ribosomal_genes, ]
+# mt_genes = grep("^mt-|^MT-", rownames(obj), value=T)
+# obj =  obj[!rownames(obj) %in% mt_genes, ]
 obj$timepoint = as.factor(obj$timepoint)
 timepoints = levels(obj$timepoint)
 for (tp in timepoints) {
@@ -56,13 +58,12 @@ for (tp in timepoints) {
     significant_gene_number = sum(sparkX$res_mtest$adjustedPval<=0.05)
     significant_gene_number = min(nrow(sparkX$res_mtest), max(significant_gene_number, 500)) # avoid too few genes
     SVGs = sparkX$res_mtest[order(sparkX$res_mtest$adjustedPval),][1:significant_gene_number, ]
-    write.csv(SVGs, file.path(opt$result_dir, paste0(tp, '_SVG_sparkx.csv')), quote=F)
+    # write.csv(SVGs, file.path(opt$result_dir, paste0(tp, '_SVG_sparkx.csv')), quote=F)
     SVG_mat = tp_obj@assays$SCT@scale.data[rownames(SVGs), ]
     SVG_pcs = prcomp(SVG_mat, center=T, scale=T)
     SVG_top_pcs = SVG_pcs$x[, 1:30]
     nearest_K = min(nrow(SVG_top_pcs), 100, significant_gene_number)
     knn.norm = FNN::get.knn(as.matrix(SVG_top_pcs), k=nearest_K)
-    # knn.norm = FNN::get.knn(SVG_mat, k=30) # use original matrix
     knn.norm = data.frame(from = rep(1:nrow(knn.norm$nn.index),
                k=nearest_K), to = as.vector(knn.norm$nn.index), weight = 1/(1 + as.vector(knn.norm$nn.dist)))
     nw.norm = igraph::graph_from_data_frame(knn.norm, directed = FALSE)

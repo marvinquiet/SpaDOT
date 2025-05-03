@@ -71,11 +71,11 @@ class SpaDOT(nn.Module):
         inside_elbo = inside_elbo_recon - (batch_size / self.svgp_dict[str(tp)].N_train) * inside_elbo_kl
         SVGP_p_m = torch.stack(SVGP_p_m, dim=1)
         SVGP_p_v = torch.stack(SVGP_p_v, dim=1)
-        SVGP_latent_sample = SVGP_p_m + torch.randn_like(SVGP_p_m) * torch.sqrt(SVGP_p_v)
         ce_term = self._gauss_cross_entropy(SVGP_p_m, SVGP_p_v, SVGP_qnet_mu, SVGP_qnet_var)
         ce_term = torch.sum(ce_term)
         diff = ce_term - inside_elbo
         SVGP_KL = (-diff if ce_term.item() > inside_elbo.item() else diff) / self.SVGP_z_dim #  force KL to be negative (Recon - beta*KL), stablize training
+        SVGP_latent_sample = SVGP_p_m + torch.randn_like(SVGP_p_m) * torch.sqrt(SVGP_p_v)
 
         # GAT latent
         GAT_m, GAT_v = self.GATEncoder(y, edge_index)
@@ -89,7 +89,8 @@ class SpaDOT(nn.Module):
         recon_loss = torch.sum((y[:batch_size]-self.decoder(final_latent))**2) / self.input_dim
         # Alignment loss
         alignment_loss = F.mse_loss(SVGP_latent_sample.norm(dim=1) / self.SVGP_z_dim, 
-                                    GAT_latent_sample.norm(dim=1) / self.GAT_z_dim, reduction='sum')
+                                    GAT_latent_sample.norm(dim=1) / self.GAT_z_dim, 
+                                    reduction='sum')
         return recon_loss, SVGP_KL, GAT_KL, alignment_loss, final_latent
     
     def all_latent_samples(self, X, Y, edge_index, tp):
@@ -104,22 +105,19 @@ class SpaDOT(nn.Module):
             Preprocessed count matrix.
         """ 
         # solve warinings
-        new_X = X.clone().to(dtype=self.dtype, device=self.device)
-        new_Y = Y.clone().to(dtype=self.dtype, device=self.device)
-        new_edge_index = edge_index.clone().to(dtype=torch.long, device=self.device)
-        # X = torch.tensor(X, dtype=self.dtype, device=self.device)
-        # Y = torch.tensor(Y, dtype=self.dtype, device=self.device)
-        # edge_index = torch.tensor(edge_index, dtype=torch.long, device=self.device)
-        SVGP_qnet_mu, SVGP_qnet_var = self.SVGPEncoder(new_Y)
+        X = torch.tensor(X, dtype=self.dtype, device=self.device)
+        Y = torch.tensor(Y, dtype=self.dtype, device=self.device)
+        edge_index = torch.tensor(edge_index, dtype=torch.long, device=self.device)
+        SVGP_qnet_mu, SVGP_qnet_var = self.SVGPEncoder(Y)
         SVGP_p_m, SVGP_p_v = [], []
         for l in range(self.SVGP_z_dim):
-            p_m_l, p_v_l, _, _ = self.svgp_dict[str(tp)].approximate_posterior_params(new_X, new_X, SVGP_qnet_mu[:, l], SVGP_qnet_var[:, l])
+            p_m_l, p_v_l, _, _ = self.svgp_dict[str(tp)].approximate_posterior_params(X, X, SVGP_qnet_mu[:, l], SVGP_qnet_var[:, l])
             SVGP_p_m.append(p_m_l)
             SVGP_p_v.append(p_v_l)
         SVGP_p_m = torch.stack(SVGP_p_m, dim=1)
         SVGP_p_v = torch.stack(SVGP_p_v, dim=1)
 
-        GAT_m, _ = self.GATEncoder(new_Y, new_edge_index)
+        GAT_m, _ = self.GATEncoder(Y, edge_index)
         p_m = torch.cat((SVGP_p_m, GAT_m), dim=1)
         latent_samples = p_m.data.cpu().detach().numpy()
         return latent_samples

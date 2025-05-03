@@ -15,7 +15,7 @@ def preprocess_adata(args, adata):
     '''
     tps = adata.obs['timepoint'].unique()
     if args.feature_selection:
-        SVGs = get_SVGs(args, tps)
+        SVGs = _get_SVGs(args, tps)
         adata = adata[:, SVGs].copy()
     # save counts in adata.layers
     if not scipy.sparse.issparse(adata.X):
@@ -25,8 +25,8 @@ def preprocess_adata(args, adata):
     # --- preprocess data
     tp_adata_list = []
     for tp in tps:
-        tp_adata = adata[adata.obs['timepoint'] == tp].copy()
-        sc.pp.normalize_total(tp_adata, target_sum=1e-6)
+        tp_adata = adata[adata.obs['timepoint'] == tp]
+        sc.pp.normalize_total(tp_adata, target_sum=1e-4)
         sc.pp.log1p(tp_adata)
         tp_adata_list.append(tp_adata)
     # union SVG genes for all time points
@@ -46,7 +46,7 @@ def preprocess_adata(args, adata):
     preprocessed_adata = anndata.concat(new_tp_adata_list)
     return preprocessed_adata
 
-def get_SVGs(args, tps):
+def _get_SVGs(args, tps):
     '''
     Run SPARKX to select SVGs.
     Args:

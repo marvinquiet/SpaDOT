@@ -1,185 +1,139 @@
 import os
 import anndata
-import scipy as sp
-import sklearn.neighbors
-import scipy
 import numpy as np
 import pandas as pd
-import scanpy as sc
-from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+import wot # Waddington OT, original package
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-def obtain_loc_tp_info(adata):
-    '''
-    Obtain the location and time point information from the adata object.
-    The location is standardized and concatenated with the time point information.
-    The time point information is one-hot encoded.
-    '''
-    adata.obs['timepoint_numeric'] = adata.obs['timepoint'].astype('category').cat.codes
-    time_info = np.array(adata.obs['timepoint_numeric']).astype('int')
-    time_mat = np.zeros((time_info.size, time_info.max()+1))
-    time_mat[np.arange(time_info.size), time_info] = 1
-    n_tp = time_mat.shape[1]
-    # scale locations per time point
-    loc = adata.obsm['spatial']
-    loc_scaled = np.zeros(loc.shape, dtype=np.float64)
-    for i in range(n_tp):
-        scaler = StandardScaler()
-        tp_loc = loc[time_mat[:,i]==1, :]
-        tp_loc = scaler.fit_transform(tp_loc)
-        loc_scaled[time_mat[:,i]==1, :] = tp_loc
-    loc = loc_scaled
-    loc = np.concatenate((loc, time_mat), axis=1)
-    return loc, time_mat, n_tp
-
-
-
-# 
-def preprocess_adata(args, adata, get_SVG=False):
-    if args.feature_selection:
-        SVGs = select_SVGs(args, adata)
-
-
-    SVG_genes = select_SVGs(args, adata, get_SVG=get_SVG)
-    adata = adata[:, SVG_genes].copy()
-    # filter genes
-    if not scipy.sparse.issparse(adata.X):
-        adata.layers['counts'] = scipy.sparse.csr_matrix(adata.X)
-    else:
-        adata.layers['counts'] = adata.X
-    # --- preprocess data
-    tp_adata_list = []
-    for tp in args.timepoints:
-        tp_adata = adata[adata.obs['timepoint'] == tp]
-        sc.pp.normalize_total(tp_adata, target_sum=1e-4)
-        sc.pp.log1p(tp_adata)
-        tp_adata_list.append(tp_adata)
-    combined_genes = set().union(*(obj.var_names for obj in tp_adata_list))
-    combined_genes = list(combined_genes)
-    combined_genes.sort()
-    with open(args.result_dir+os.sep+'selected_genes.txt', 'w') as f:
-        for item in combined_genes:
-            f.write("%s\n" % item)  
-    new_tp_adata_list = []
-    for tp_adata in tp_adata_list:
-        tp_adata = tp_adata[:, combined_genes]
-        sc.pp.scale(tp_adata)
-        new_tp_adata_list.append(tp_adata)
-    concat_adata = anndata.concat(new_tp_adata_list)
-    return concat_adata
-
-
-
-
-
-
-def Cal_Spatial_Net(adata, rad_cutoff=None, k_cutoff=None,
-                    max_neigh=100, model='Radius', verbose=True):
-    """\
-    Construct the spatial neighbor networks.
-
+def KMeans_Clustering(adata, n_clusters):
+    """
+    Perform KMeans clustering on the spatial data.
+    
     Parameters
     ----------
-    adata
-        AnnData object of scanpy package.
-    rad_cutoff
-        radius cutoff when model='Radius'
-    k_cutoff
-        The number of nearest neighbors when model='KNN'
-    model
-        The network construction model. When model=='Radius', the spot is connected to spots whose distance is less than rad_cutoff. When model=='KNN', the spot is connected to its first k_cutoff nearest neighbors.
-
+    adata : anndata.AnnData
+        The AnnData object containing the spatial data.
+    n_clusters : int
+        The number of clusters to form.
+    
     Returns
     -------
-    The spatial networks are saved in adata.uns['Spatial_Net']
+    adata : anndata.AnnData
+        The AnnData object with the clustering results added to the obs.
+    """
+    tps = adata.obs['timepoint'].unique()
+    tps.sort()
+    tp_adata_list = []
+    for i, tp in enumerate(tps):
+        # perform KMeans clustering
+        tp_adata = adata[adata.obs['timepoint'] == tp].copy()
+        tp_kmeans = KMeans(n_clusters=n_clusters[i], 
+                           random_state=1993, 
+                           n_init=10).fit(tp_adata.X)
+        tp_adata.obs['kmeans'] = tp_kmeans.labels_.astype(str)
+        tp_adata_list.append(tp_adata)
+    # merge all timepoints
+    merged_adata = anndata.concat(tp_adata_list, axis=0)
+    return merged_adata
+
+def Adaptive_Clustering(adata):
+    """
+    Perform adaptive clustering on the spatial data based on Elbow method.
+    
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        The AnnData object containing the spatial data.    
+    Returns
+    -------
+    adata : anndata.AnnData
+        The AnnData object with the clustering results added to the obs.
+    """
+    
+    # Perform adaptive clustering
+    
+    return adata
+
+def OT_analysis(args, adata):
+    """
+    Perform optimal transport analysis on the spatial data.
+    
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        The AnnData object containing the spatial data.    
+    Returns
+    -------
+    adata : anndata.AnnData
+        The AnnData object with the OT analysis results added to the obs.
+    """
+    adata.obs['day'] = adata.obs['timepoint'].astype('category').cat.codes
+    adata.obs['cell_growth_rate'] = 1 # initialize as 1
+    ot_model = wot.ot.OTModel(adata, epsilon = 0.01, lambda1 = 0.1,lambda2 = 5, growth_iters=3) # imbalanced OT with imbalanced row and comparatiely balanced target
+    ot_model.compute_all_transport_maps(tmap_out=args.output_dir+os.sep+'OT') # compute transport maps
+    tmap_model = wot.tmap.TransportMapModel.from_directory(args.output_dir+os.sep+'OT')
+    # generate region dict
+    adata.obs['SpaDOT_pred_labels'] = adata.obs['timepoint'].astype('str')+'_'+adata.obs['kmeans'].astype('str')
+    latent_cell_sets = adata.obs.groupby('SpaDOT_pred_labels').apply(lambda x: x.index.tolist()).to_dict()
+    days = adata.obs['day'].unique()
+    days.sort()
+    for tp_i in range(len(days)-1):
+        prev_day = days[tp_i]
+        next_day = days[tp_i+1]
+        prev_day_populations = tmap_model.population_from_cell_sets(latent_cell_sets, at_time=prev_day)
+        next_day_populations = tmap_model.population_from_cell_sets(latent_cell_sets, at_time=next_day)
+        transition_table = tmap_model.transition_table(prev_day_populations, next_day_populations) # aggregated OT matrix
+        transition_table.write_h5ad(args.output_dir+os.sep+'transition_table_'+str(prev_day)+'_'+str(next_day)+'.h5ad')
+
+def plot_domains(args, adata):
+    """
+    Plot the spatial domains of the cells.
+    
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        The AnnData object containing the spatial data.    
+    Returns
+    -------
+    None
+    """
+    for tp in adata.obs['timepoint'].unique():
+        tp_adata = adata[adata.obs['timepoint'] == tp].copy()
+        tp_adata.obs['pixel_x'] = tp_adata.obsm['spatial'][:, 0]
+        tp_adata.obs['pixel_y'] = tp_adata.obsm['spatial'][:, 1]
+        # plot the spatial domains
+        plt.figure(figsize=(5, 5))
+        sns.scatterplot(data=tp_adata.obs, x='pixel_x', y='pixel_y', 
+                        hue='kmeans', palette='tab10', s=10)
+        plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        plt.title('Time point: {}'.format(tp))
+        plt.tight_layout()
+        plt.savefig(args.output_dir+os.sep+args.prefix+str(tp)+'_domains.png')
+        plt.close()
+
+def plot_OT(args):
+    """
+    Plot the optimal transport results.
+    
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        The AnnData object containing the spatial data.    
+    Returns
+    -------
+    None
     """
 
-    assert (model in ['Radius', 'KNN'])
-    if verbose:
-        print('------Calculating spatial graph...')
-    # coor = pd.DataFrame(adata.obs[['pixel_x', 'pixel_y']])
-    assert 'spatial' in adata.obsm.keys()
-    coor = pd.DataFrame(adata.obsm['spatial'])
-    coor.index = adata.obs.index
-    coor.columns = ['imagerow', 'imagecol']
-
-    nbrs = sklearn.neighbors.NearestNeighbors(
-        # n_neighbors=max_neigh + 1, algorithm='ball_tree').fit(coor)
-        n_neighbors=max_neigh + 1, algorithm='auto').fit(coor)
-    distances, indices = nbrs.kneighbors(coor)
-    if model == 'KNN':
-        indices = indices[:, 1:k_cutoff + 1]
-        distances = distances[:, 1:k_cutoff + 1]
-    if model == 'Radius':
-        indices = indices[:, 1:]
-        distances = distances[:, 1:]
-
-    KNN_list = []
-    for it in range(indices.shape[0]):
-        KNN_list.append(pd.DataFrame(zip([it] * indices.shape[1], indices[it, :], distances[it, :])))
-    KNN_df = pd.concat(KNN_list)
-    KNN_df.columns = ['Cell1', 'Cell2', 'Distance']
-
-    Spatial_Net = KNN_df.copy()
-    if model == 'Radius':
-        Spatial_Net = KNN_df.loc[KNN_df['Distance'] < rad_cutoff,]
-    id_cell_trans = dict(zip(range(coor.shape[0]), np.array(coor.index), ))
-    Spatial_Net['Cell1'] = Spatial_Net['Cell1'].map(id_cell_trans)
-    Spatial_Net['Cell2'] = Spatial_Net['Cell2'].map(id_cell_trans)
-
-    if verbose:
-        print('The graph contains %d edges, %d cells.' % (Spatial_Net.shape[0], adata.n_obs))
-        print('%.4f neighbors per cell on average.' % (Spatial_Net.shape[0] / adata.n_obs))
-    adata.uns['Spatial_Net'] = Spatial_Net
-
-    #########
-    X = pd.DataFrame(adata.layers['counts'].toarray()[:, ], index=adata.obs.index, columns=adata.var.index)
-    cells = np.array(X.index)
-    cells_id_tran = dict(zip(cells, range(cells.shape[0])))
-    if 'Spatial_Net' not in adata.uns.keys():
-        raise ValueError("Spatial_Net is not existed! Run Cal_Spatial_Net first!")
-        
-    Spatial_Net = adata.uns['Spatial_Net']
-    G_df = Spatial_Net.copy()
-    G_df['Cell1'] = G_df['Cell1'].map(cells_id_tran)
-    G_df['Cell2'] = G_df['Cell2'].map(cells_id_tran)
-    G = sp.sparse.coo_matrix((np.ones(G_df.shape[0]), (G_df['Cell1'], G_df['Cell2'])), shape=(adata.n_obs, adata.n_obs))
-    G = G + sp.eye(G.shape[0])  # self-loop
-    adata.uns['adj'] = G
-
-
-def Stats_Spatial_Net(adata, result_dir):
-    import matplotlib.pyplot as plt
-    Num_edge = adata.uns['Spatial_Net']['Cell1'].shape[0]
-    Mean_edge = Num_edge / adata.shape[0]
-    plot_df = pd.value_counts(pd.value_counts(adata.uns['Spatial_Net']['Cell1']))
-    plot_df = plot_df / adata.shape[0]
-    fig, ax = plt.subplots(figsize=[3, 2])
-    plt.ylabel('Percentage')
-    plt.xlabel('')
-    plt.title('Number of Neighbors (Mean=%.2f)' % Mean_edge)
-    ax.bar(plot_df.index, plot_df)
-    plt.savefig(result_dir+os.sep+'spatial_net_stats.png')
-    plt.close()
-
-
-def rbf_adjacency_matrix(features, sigma=1.0, sparsity=0.1):
-    """
-    Builds an adjacency matrix using the RBF kernel.
-
-    Args:
-        features (np.ndarray): Node features of shape (N, F) where N is the number of nodes.
-        sigma (float): Bandwidth parameter for the RBF kernel.
-        threshold (float): Minimum weight to consider an edge (optional).
-
-    Returns:
-        np.ndarray: Adjacency matrix of shape (N, N).
-    """
-    assert sparsity >= 0 and sparsity <= 1
-    # Compute squared Euclidean distance
-    distances = np.sum(features**2, axis=1)[:, None] + np.sum(features**2, axis=1) - 2 * np.dot(features, features.T)
-    # Apply the RBF kernel
-    adjacency_matrix = np.exp(-distances / (2 * sigma**2))
-    # Optional: Apply threshold to sparsify the graph
-    threshold = np.percentile(adjacency_matrix, 100*(1-sparsity))
-    adjacency_matrix[adjacency_matrix < threshold] = 0
-    return adjacency_matrix
+    # --- normalize by column sum
+    transition_prob = transition_table.X
+    transition_prob = transition_prob/transition_prob.sum(axis=0, keepdims=True)
+    transition_prob_df = pd.DataFrame(transition_prob, index=transition_table.obs_names, columns=transition_table.var_names)
+    transition_prob_df.to_csv(args.output_dir+os.sep+'transition_prob_'+str(prev_day)+'_'+str(next_day)+'_col_norm.csv')
+    # --- normalize by row sum
+    transition_prob = transition_table.X
+    transition_prob = transition_prob/transition_prob.sum(axis=1, keepdims=True)
+    transition_prob_df = pd.DataFrame(transition_prob, index=transition_table.obs_names, columns=transition_table.var_names)
+    transition_prob_df.to_csv(args.output_dir+os.sep+'transition_prob_'+str(prev_day)+'_'+str(next_day)+'_row_norm.csv')
+    pass

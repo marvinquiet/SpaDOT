@@ -19,6 +19,12 @@ def set_seed(seed=1993):
     random.seed(seed)
     cudnn.deterministic = True
     cudnn.benchmark = False
+    g = torch.Generator()
+    g.manual_seed(seed) # for stabilization
+
+def seed_worker(worker_id):
+    np.random.seed(1993)
+    random.seed(1993)
 
 def load_model_config(args):
     '''
@@ -34,7 +40,7 @@ def load_model_config(args):
         config = yaml.safe_load(f)
     return config
 
-def _Cal_Spatial_Net(adata, k_cutoff=None, max_neigh=30, verbose=False):
+def _Cal_Spatial_Net(adata, k_cutoff=None, max_neigh=30):
     """
     Construct the spatial neighbor networks using KNN.
     Parameters
@@ -43,8 +49,7 @@ def _Cal_Spatial_Net(adata, k_cutoff=None, max_neigh=30, verbose=False):
         The AnnData object containing the spatial data.
     """
 
-    if verbose:
-        print('Constructing spatial graph...')
+    print('Calculating spatial graph...')
     coor = pd.DataFrame(adata.obsm['spatial'])
     coor.index = adata.obs.index
     coor.columns = ['imagerow', 'imagecol']
@@ -66,9 +71,8 @@ def _Cal_Spatial_Net(adata, k_cutoff=None, max_neigh=30, verbose=False):
     Spatial_Net['Cell1'] = Spatial_Net['Cell1'].map(id_cell_trans)
     Spatial_Net['Cell2'] = Spatial_Net['Cell2'].map(id_cell_trans)
 
-    if verbose:
-        print('The graph contains %d edges, %d cells.' % (Spatial_Net.shape[0], adata.n_obs))
-        print('%.4f neighbors per cell on average.' % (Spatial_Net.shape[0] / adata.n_obs))
+    print('The graph contains %d edges, %d cells.' % (Spatial_Net.shape[0], adata.n_obs))
+    print('%.4f neighbors per cell on average.' % (Spatial_Net.shape[0] / adata.n_obs))
     adata.uns['Spatial_Net'] = Spatial_Net
 
     X = pd.DataFrame(adata.layers['counts'].toarray()[:, ], index=adata.obs.index, columns=adata.var.index)

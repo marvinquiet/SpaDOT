@@ -15,9 +15,10 @@ from torch_geometric.data import Data
 from torch_geometric.utils import dense_to_sparse
 from torch_geometric.loader import NeighborLoader
 from tqdm.auto import tqdm
+from collections import OrderedDict
 
 # --- load my package
-from utils.OT_loss.ot_solvers import compute_transport_map # Waddington
+from utils.OT_loss.ot_solvers import compute_transport_map # Waddington, faster C version
 from utils import _utils
 from model import SpaDOT
 
@@ -42,14 +43,14 @@ def prepare_dataloader(adata, model_config):
     # --- generate mapper between tp_mat index and real timepoint -> in case the timepoint is not numeric or continous
     idx_to_tp = dict(enumerate(model_config['timepoints']))
     tp_to_idx = {v:k for k,v in idx_to_tp.items()} 
-    tp_idx = np.argmax(loc[:, 2:], axis=1)    
-    tp_list = [idx_to_tp[idx] for idx in tp_idx]
+    idx = np.argmax(loc[:, 2:], axis=1)    
+    tp_list = [idx_to_tp[_] for _ in idx]
     tp_index_dict = dict() # tp index in timepoint list
     for tp in model_config['timepoints']:
         tp_ix = [_ for _ in range(len(tp_list)) if tp_list[_] == tp]
         tp_index_dict[tp] = tp_ix
     # create inducing point dict / number of training sample dict for separate decoder
-    inducing_points_dict, N_train_dict = dict(), dict()
+    inducing_points_dict, N_train_dict = OrderedDict(), OrderedDict()
     inducing_points_tp = np.argmax(inducing_points[:, 2:], axis=1)
     for _, tp in enumerate(model_config['timepoints']):
         idx = tp_to_idx[tp]
@@ -57,7 +58,7 @@ def prepare_dataloader(adata, model_config):
         inducing_points_dict[tp] = inducing_points[tp_inducing_idx, :2]
         N_train_dict[tp] = np.sum(adata.obs['timepoint'] == tp) # number of training data in each timepoint
     # --- generate timepoint-specific dataloader
-    dataloaders_dict, adj_dict, dataset_dict = dict(), dict(), dict()
+    dataloaders_dict, adj_dict, dataset_dict = OrderedDict(), OrderedDict(), OrderedDict()
     for tp in model_config['timepoints']:
         tp_ix = tp_index_dict[tp]
         tp_adata = adata[tp_ix].copy()
@@ -65,21 +66,22 @@ def prepare_dataloader(adata, model_config):
         tp_dataset = MyDataset(tp_loc, tp_adata.X, tp_ix)
         dataset_dict[tp] = tp_dataset
         # --- Neighborloader for graph data
-        _utils._Cal_Spatial_Net(tp_adata, k_cutoff=max(model_config['max_neighbors'], model_config['knn_cutoff']*round(1/1000*tp_adata.n_obs)),
+        _utils._Cal_Spatial_Net(tp_adata, k_cutoff=min(model_config['max_neighbors'], model_config['knn_cutoff']*round(1/1000*tp_adata.n_obs)),
                                max_neigh=model_config['max_neighbors'])
         tp_adj = torch.tensor(tp_adata.uns['adj'], dtype=model_config['dtype'])
         tp_edge_index, _ = dense_to_sparse(tp_adj)
         tp_graph_data = Data(
             x=torch.tensor(tp_adata.X, dtype=model_config['dtype']),
-            edge_index=tp_edge_index.clone().to(dtype=torch.long), # torch copy warning
-            # edge_index=torch.tensor(tp_edge_index, dtype=torch.long),
+            # edge_index=tp_edge_index.clone().to(dtype=torch.long), # torch copy warning
+            edge_index=torch.tensor(tp_edge_index, dtype=torch.long),
             data_index=torch.tensor(tp_ix, dtype=torch.int),
             loc=torch.tensor(tp_loc, dtype=model_config['dtype'])
         )
         tp_graph_loader = NeighborLoader(
-            tp_graph_data, num_neighbors=[max(model_config['max_neighbors'], model_config['knn_cutoff']*round(1/1000*tp_adata.n_obs))] * 2, 
+            tp_graph_data, num_neighbors=[max(30, model_config['knn_cutoff']*round(1/1000*tp_adata.n_obs))] * 2, 
             batch_size = model_config['batch_size'],
-            subgraph_type="induced"
+            subgraph_type="induced",
+            worker_init_fn=_utils.seed_worker
         )
         dataloaders_dict[tp] = tp_graph_loader 
         adj_dict[tp] = tp_adj
@@ -108,6 +110,7 @@ def get_latent(model, model_config, adata, dataloader_dict):
             tp_edge_index, _ = dense_to_sparse(tp_adj)
             latent_samples = model.all_latent_samples(tp_loc, tp_y, tp_edge_index, tp)  
             tp_latent_adata = sc.AnnData(latent_samples, obs=adata[tp_idx.numpy()].obs)
+            tp_latent_adata.obsm['spatial'] = adata.obsm['spatial'][tp_idx.numpy()]
             latent_adata_list.append(tp_latent_adata)
         latent_adata = anndata.concat(latent_adata_list)
     return latent_adata
@@ -159,45 +162,40 @@ def train_SpaDOT(dataloader_dict, model_config):
     tp_indexed_list = list(enumerate(model_config['timepoints']))
     
     # --- initialize dictionary to store loss
-    loss_dict = dict()
+    loss_dict = OrderedDict()
     loss_names = ['elbo', 'Recon', 'SVGP_KL', 'GAT_KL', 'alignment', 'KMeans', 'OT']
     for epoch in range(model_config['maxiter']):
-        loss_dict[epoch] = dict()
+        loss_dict[epoch] = OrderedDict()
         for name in loss_names:
             loss_dict[epoch][name] = 0
 
     print("Training SpaDOT model...")
     train_starttime = time()
     for epoch in tqdm(range(model_config['maxiter'])):
-        SpaDOT_model.beta1 = beta1s[epoch]
-        SpaDOT_model.beta2 = model_config['beta2']
-
+        beta1 = beta1s[epoch]
         # --- start training
         SpaDOT_model.train()
         ep_starttime = time()
-        tp_loss_dict = dict()
+        tp_loss_dict = OrderedDict()
         # --- random shuffle timepoints
         random.shuffle(tp_indexed_list) 
         for tp_i, tp in tp_indexed_list:
-            tp_loss_dict[tp] = dict()
+            tp_loss_dict[tp] = OrderedDict()
             for name in loss_names:
                 tp_loss_dict[tp][name] = 0
             tp_dataloader = dataloader_dict['dataloaders'][tp]
-            tp_adj = dataloader_dict['adjacency_matrices'][tp]
             for _, batch in enumerate(tp_dataloader):
                 # y: gene expression; x: location; tp_ix: timepoint index; edge_index: graph edge index
                 y_batch, x_batch, tp_ix, edge_index_batch = batch.x, batch.loc, batch.data_index, batch.edge_index
                 x_batch, y_batch, edge_index_batch = x_batch.to(model_config['device']), y_batch.to(model_config['device']), edge_index_batch.to(model_config['device'])
                 tp_ix, adj_idx,  = tp_ix[:batch.batch_size], batch.n_id[:batch.batch_size] # subset to seed nodes only
-                adj_batch = tp_adj[adj_idx, :][:, adj_idx]
-                adj_batch = adj_batch.to(model_config['device'])
                 # --- forward SVGPVAE and GATVAE to obtain latent space
                 tp_Recon_val, tp_SVGP_KL_val, tp_GAT_KL_val, tp_alignment_val, tp_p_m = \
                 SpaDOT_model.forward(x=x_batch, y=y_batch, edge_index=edge_index_batch, 
                                      tp=tp, batch_size=batch.batch_size)
                 # --- calculate KMeans loss from latent space
                 tp_KMeans_val = torch.tensor(0, dtype=model_config['dtype'], device=model_config['device'])
-                if epoch >= 1: # add Kmeans loss after the first epoch
+                if epoch >= 1: # add Kmeans loss after the first epoch once the latent space is generated
                     kmeans_loss = _compute_kmeans_loss(SpaDOT_model, model_config, tp, tp_ix, tp_p_m)
                     tp_KMeans_val += kmeans_loss
                 # --- calculate OT loss from latent space
@@ -207,7 +205,7 @@ def train_SpaDOT(dataloader_dict, model_config):
                         tp_loss = _compute_OT_loss(SpaDOT_model, model_config, tp, tp_ix, tp_p_m, model_config['timepoints'][tp_i-1])
                         tp_OT_val += tp_loss
                 tp_elbo_val = model_config['lambda1'] * tp_Recon_val - \
-                    model_config['beta1'] * tp_SVGP_KL_val + \
+                    beta1 * tp_SVGP_KL_val + \
                     model_config['beta2'] * tp_GAT_KL_val + \
                     model_config['omiga1'] * tp_alignment_val + \
                     model_config['omiga2'] * tp_KMeans_val + \
@@ -215,7 +213,7 @@ def train_SpaDOT(dataloader_dict, model_config):
                 # --- backward
                 optimizer.zero_grad()
                 tp_elbo_val.backward(retain_graph=True)
-                torch.nn.utils.clip_grad_norm_(SpaDOT_model.parameters(), 0.5) # stabilize training
+                torch.nn.utils.clip_grad_norm_(SpaDOT_model.parameters(), 0.3) # stabilize training
                 optimizer.step()
                 # --- update loss in each timepoint
                 for name in loss_names:
@@ -317,7 +315,7 @@ def _update_OT_matrix(model, model_config):
         if tp_i == len(timepoints) - 1: break
         cur_tp = tp
         next_tp = timepoints[tp_i+1]
-        gamma = compute_transport_map(model.kmeans_center_dict[cur_tp].astype(np.float32),
-                                       model.kmeans_center_dict[next_tp].astype(np.float32), 
+        gamma = compute_transport_map(model.kmeans_center_dict[cur_tp],
+                                       model.kmeans_center_dict[next_tp], 
                                        model_config['ot_config'], G=None)
         model.gammas[f"{timepoints[tp_i]}_{timepoints[tp_i+1]}"] = gamma

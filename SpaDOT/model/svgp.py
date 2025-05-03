@@ -18,7 +18,6 @@ class SVGP(nn.Module):
             Jitter term to add to the diagonal of covariance matrices for numerical stability.
         '''
         super(SVGP, self).__init__()
-        self.model_config = model_config
         self.N_train = N_train
         self.jitter = jitter
         # Inducing points
@@ -52,9 +51,9 @@ class SVGP(nn.Module):
 
         K_nn = self.kernel_matrix(x, x, diag_only=True)
         K_nm = self.kernel_matrix(x, self.inducing_index_points)
-        K_mn = K_nm.T
+        K_mn = torch.transpose(K_nm, 0, 1)
 
-        mean_vector = K_nm @ (K_mm_inv @ mu_hat)
+        mean_vector = torch.matmul(K_nm, torch.matmul(K_mm_inv, mu_hat))
         KL_term = self._compute_kl_term(K_mm, K_mm_inv, mu_hat, A_hat, m)
         L_3_sum_term = self._compute_l3_term(K_nn, K_nm, K_mn, noise, y, mean_vector, K_mm_inv, A_hat, b)
 
@@ -67,13 +66,17 @@ class SVGP(nn.Module):
 
         K_xx = self.kernel_matrix(index_points_test, index_points_test, diag_only=True) 
         K_xm = self.kernel_matrix(index_points_test, self.inducing_index_points)
-        K_mn = self.kernel_matrix(index_points_train, self.inducing_index_points).T
+        K_mx = torch.transpose(K_xm, 0, 1)  # (m, x)
 
-        sigma_l_inv = self._compute_sigma_l_inv(K_mm, K_mn, noise, b)
-        mean_vector = (self.N_train / b) * K_xm @ (sigma_l_inv @ (K_mn @ (y / noise)))
+        K_nm = self.kernel_matrix(index_points_train, self.inducing_index_points)
+        K_mn = torch.transpose(K_nm, 0, 1) 
 
-        K_xm_Sigma_l_K_mx = torch.matmul(K_xm, torch.matmul(sigma_l_inv, K_xm.T))
-        B = K_xx + torch.diagonal(-torch.matmul(K_xm, torch.matmul(K_mm_inv, K_xm.T)) + K_xm_Sigma_l_K_mx)
+        sigma_l = K_mm + (self.N_train / b) * torch.matmul(K_mn, K_nm / noise[:,None])
+        sigma_l_inv = torch.linalg.inv(self._add_diagonal_jitter(sigma_l, self.jitter))
+        mean_vector = (self.N_train / b) * torch.matmul(K_xm, torch.matmul(sigma_l_inv, torch.matmul(K_mn, y/noise)))
+
+        K_xm_Sigma_l_K_mx = torch.matmul(K_xm, torch.matmul(sigma_l_inv, K_mx))
+        B = K_xx + torch.diagonal(-torch.matmul(K_xm, torch.matmul(K_mm_inv, K_mx)) + K_xm_Sigma_l_K_mx)
 
         mu_hat = (self.N_train / b) * torch.matmul(torch.matmul(K_mm, torch.matmul(sigma_l_inv, K_mn)), y / noise)
         A_hat = torch.matmul(K_mm, torch.matmul(sigma_l_inv, K_mm))
@@ -87,21 +90,19 @@ class SVGP(nn.Module):
         S_log_det = 2 * torch.sum(torch.log(torch.diagonal(S_chol)))
 
         return 0.5 * (K_mm_log_det - S_log_det - m +
-                      torch.trace(K_mm_inv @ A_hat) +
-                      torch.sum(mu_hat * (K_mm_inv @ mu_hat)))
+                      torch.trace(torch.matmul(K_mm_inv, A_hat)) +
+                      torch.sum(mu_hat * torch.matmul(K_mm_inv, mu_hat)))
 
     def _compute_l3_term(self, K_nn, K_nm, K_mn, noise, y, mean_vector, K_mm_inv, A_hat, b):
         precision = 1 / noise
-        K_tilde_terms = precision * (K_nn - torch.diagonal(K_nm @ (K_mm_inv @ K_mn)))
-        trace_terms = precision * torch.einsum('bii->b', A_hat @ (K_mm_inv @ (K_nm.unsqueeze(2) @ K_nm.unsqueeze(2).transpose(1, 2))))
-
+        K_tilde_terms = precision * (K_nn - torch.diagonal(torch.matmul(K_nm, torch.matmul(K_mm_inv, K_mn))))
+        lambda_mat = torch.matmul(K_nm.unsqueeze(2), torch.transpose(K_nm.unsqueeze(2), 1, 2))
+        lambda_mat = torch.matmul(K_mm_inv, torch.matmul(lambda_mat, K_mm_inv))
+        trace_terms = precision * torch.einsum('bii->b', torch.matmul(A_hat, lambda_mat))
         return -0.5 * (torch.sum(K_tilde_terms) + torch.sum(trace_terms) +
-                       torch.sum(torch.log(noise)) + b * torch.log(2 * torch.tensor(torch.pi)) +
-                       torch.sum(precision * (y - mean_vector) ** 2))
+                        torch.sum(torch.log(noise)) + b * torch.log(2 * torch.tensor(torch.pi)) +
+                        torch.sum(precision * (y - mean_vector) ** 2))
 
-    def _compute_sigma_l_inv(self, K_mm, K_mn, noise, b):
-        sigma_l = K_mm + (self.N_train / b) * (K_mn @ (K_mn.T / noise[:, None]))
-        return torch.linalg.inv(self._add_diagonal_jitter(sigma_l, self.jitter))
 
 '''
 Kernel same as in SpatialPCA

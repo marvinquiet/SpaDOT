@@ -27,7 +27,7 @@ SpaDOT requires the following:
 - [numpy](https://numpy.org/) (v1.22.4)
 - [pandas](https://pandas.pydata.org/) (v1.3.5)
 - [sklearn](https://scikit-learn.org/) (v1.3.0)
-- [rpy2](https://rpy2.github.io/) (v3.5.17)
+<!-- - [rpy2](https://rpy2.github.io/) (v3.5.17) -->
 - `cuda toolkit` and `nvidia cudnn` when using GPU resources, more information can be found [here](https://towardsdatascience.com/setting-up-tensorflow-gpu-with-cuda-and-anaconda-onwindows-2ee9c39b5c44)
 
 **Note:** If using GPU resources, you might also need to install the CUDA Toolkit and NVIDIA cuDNN libraries. Detailed setup instructions can be found [here](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/). Please make sure to install a compatible version for PyTorch.

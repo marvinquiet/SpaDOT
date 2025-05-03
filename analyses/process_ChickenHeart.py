@@ -53,5 +53,33 @@ timepoint_dict = {'D4': 0, 'D7': 1, 'D10': 2, 'D14': 3}
 adata.obs['timepoint'] = [timepoint_dict[_] for _ in adata.obs['orig.ident']]
 adata.X = adata.X.astype(int)
 adata.obs.index.name = None
+# --- edit spatial coordinates to rotate the image, but keep timepoint 0 unchanged
+adata.obs['pixel_x_bak'] = adata.obs['pixel_x']
+adata.obs['pixel_y_bak'] = adata.obs['pixel_y']
+adata.obs['pixel_x'] = adata.obs.apply(
+    lambda row: row['pixel_y_bak'] if row['timepoint'] in [1, 2, 3] else -row['pixel_y_bak'], axis=1
+)
+adata.obs['pixel_y'] = adata.obs.apply(
+    lambda row: row['pixel_x_bak'] if row['timepoint'] in [1, 2, 3] else -row['pixel_x_bak'], axis=1
+)
 adata.obsm['spatial'] = adata.obs[['pixel_x', 'pixel_y']].values
-adata.write_h5ad('ChickenHeart.h5ad') 
+adata.write_h5ad('ChickenHeart.h5ad')
+
+# draw the spatial coordinates to confirm
+import matplotlib.pyplot as plt
+def plot_spatial_coordinates_per_timepoint(adata):
+    """
+    Plot spatial coordinates for each timepoint to verify rotation.
+    """
+    timepoints = adata.obs['timepoint'].unique()
+    for tp in timepoints:
+        tp_data = adata[adata.obs['timepoint'] == tp]
+        plt.figure(figsize=(6, 6))
+        plt.scatter(tp_data.obs['pixel_x'], tp_data.obs['pixel_y'], s=1, alpha=0.7)
+        plt.title(f"Timepoint {tp}")
+        plt.xlabel("Pixel X")
+        plt.ylabel("Pixel Y")
+        plt.savefig(f"spatial_coordinates_{tp}.png")
+
+# Call the function to plot
+plot_spatial_coordinates_per_timepoint(adata)

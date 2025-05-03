@@ -43,7 +43,7 @@ ot_config:
   lambda1: 0.1  # Regularization parameter for OT row imbalance
   lambda2: 5.0  # Regularization parameter for OT column imbalance
   epsilon0: 1  # Initial value of epsilon for OT
-  tau: 10000  # Scaling factor for OT
+  tau: 1000  # Scaling factor for OT
   scaling_iter: 3000  # Number of scaling iterations for OT
   inner_iter_max: 50  # Maximum number of inner iterations for OT
   tolerance: 0.00000001  # Tolerance for convergence in OT

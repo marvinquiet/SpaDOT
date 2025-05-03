@@ -16,7 +16,7 @@ def train(args):
     tps.sort()
     model_config['timepoints'] = tps
     # add device and dtype to model_config
-    model_config['device'] = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    model_config['device'] = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
     model_config['dtype'] = torch.float64
 
     _utils.set_seed(model_config['seed'])
@@ -28,14 +28,13 @@ def train(args):
     # train model
     print("Training model...")
     SpaDOT_model, loss_df = _train_utils.train_SpaDOT(dataloader_dict, model_config)
-    loss_df.to_csv(args.output_dir + os.sep + 'loss.csv')
+    loss_df.T.to_csv(args.output_dir + os.sep + 'loss.csv')
     if args.save_model:
         torch.save(SpaDOT_model.state_dict(), args.output_dir+os.sep+'SpaDOT_model.pth')
         print("Model saved to %s" % (args.output_dir))
     # obtain the latent representation
     latent_adata = _train_utils.get_latent(SpaDOT_model, model_config, adata, dataloader_dict)
-    latent_adata.write_h5ad(args.output_dir+os.sep+args.prefix+'latent_adata.h5ad')
-
+    latent_adata.write_h5ad(args.output_dir+os.sep+args.prefix+'latent.h5ad')
 
 if __name__ == "__main__":
     data_dir = "./examples"

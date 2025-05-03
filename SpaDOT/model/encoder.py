@@ -9,23 +9,19 @@ class SVGPEncoder(nn.Module):
         super(SVGPEncoder, self).__init__()
         # Create a sequential network with specified hidden dimensions
         layers = [input_dim] + hidden_dims
-        self.SVGP_encoder_net = nn.Sequential(*[
-            nn.Sequential(
-                nn.Linear(layers[i - 1], layers[i]),  # Linear layer
-                nn.BatchNorm1d(layers[i]),           # Batch normalization
-                nn.LeakyReLU()                       # Activation function
-            ) for i in range(1, len(layers))
-        ])
-        self.SVGP_fc = nn.Linear(hidden_dims[-1], SVGP_z_dim * 2)
-        self._initialize_weights() # Initialize weights
-
-    def _initialize_weights(self):
-        for module in self.SVGP_encoder_net:
-            if isinstance(module, nn.Sequential):
-                for layer in module:
-                    if isinstance(layer, nn.Linear):
-                        nn.init.xavier_uniform_(layer.weight)
+        SVGP_encoder_net = []
+        for i in range(1, len(layers)):
+            linear_layer = nn.Linear(layers[i-1], layers[i])
+            nn.init.xavier_uniform_(linear_layer.weight)
+            SVGP_encoder_net.append(linear_layer)
+            # normalization
+            SVGP_encoder_net.append(nn.BatchNorm1d(layers[i]))
+            # activation
+            SVGP_encoder_net.append(nn.LeakyReLU())
+        self.SVGP_encoder_net = nn.Sequential(*SVGP_encoder_net)
+        self.SVGP_fc = nn.Linear(hidden_dims[-1], SVGP_z_dim*2)
         nn.init.xavier_uniform_(self.SVGP_fc.weight)
+
 
     def forward(self, x):
         '''
@@ -42,13 +38,13 @@ class GATEncoder(nn.Module):
     def __init__(self, input_dim, GAT_z_dim, hidden_dim=512, num_heads=4):
         super(GATEncoder, self).__init__()
         # Define multiple GAT layers with specified dimensions and heads
-        self.gat_layers = nn.ModuleList([
-            GATConv(input_dim, hidden_dim, heads=num_heads, concat=True),
-            GATConv(hidden_dim * num_heads, hidden_dim, heads=num_heads, concat=True),
-            GATConv(hidden_dim * num_heads, hidden_dim, heads=num_heads, concat=False)
-        ])
-        # Fully connected layer to output mean and log variance
-        self.GAT_fc = nn.Linear(hidden_dim, GAT_z_dim * 2)
+        self.gat1 = GATConv(input_dim, hidden_dim, heads=num_heads, concat=True)
+        nn.init.xavier_uniform(self.gat1.lin.weight)
+        self.gat2 = GATConv(hidden_dim * num_heads, hidden_dim, heads=num_heads, concat=True)
+        nn.init.xavier_uniform(self.gat2.lin.weight)
+        self.gat3 = GATConv(hidden_dim * num_heads, hidden_dim, heads=num_heads, concat=False)
+        nn.init.xavier_uniform(self.gat3.lin.weight)
+        self.GAT_fc = nn.Linear(hidden_dim, GAT_z_dim*2)
         nn.init.xavier_uniform_(self.GAT_fc.weight)
 
     def forward(self, x, edge_index):
@@ -57,10 +53,10 @@ class GATEncoder(nn.Module):
         edge_index: graph structure
         '''
         # Pass input through each GAT layer with LeakyReLU activation
-        for gat_layer in self.gat_layers[:-1]:
-            x = F.leaky_relu(gat_layer(x, edge_index))
-        x = self.gat_layers[-1](x, edge_index) # Final GAT layer without activation
-        GAT_z = self.GAT_fc(x)
+        h = F.leaky_relu(self.gat1(x, edge_index))
+        h = F.leaky_relu(self.gat2(h, edge_index))
+        h = self.gat3(h, edge_index)
+        GAT_z = self.GAT_fc(h)
         GAT_enc_mu, GAT_enc_logvar = torch.chunk(GAT_z, 2, dim=1)
-        return GAT_enc_mu, torch.exp(GAT_enc_logvar)  # Return mean and variance
+        return GAT_enc_mu, torch.exp(GAT_enc_logvar)
 

@@ -12,7 +12,17 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        # Add your dependencies here
+        "torch==2.0.1",
+        "torch_geometric==2.6.1",
+        "anndata==0.9.1",
+        "scanpy==1.9.8",
+        "numpy==1.22.4",
+        "pandas==1.3.5",
+        "scikit-learn==1.3.0",  # sklearn is part of scikit-learn
+        "scipy==1.10.1",
+        "matplotlib==3.6.3",
+        "seaborn==0.11.2",
+        "wot==1.0.8"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
