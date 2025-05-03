@@ -113,7 +113,7 @@ def plot_domains(args, adata):
         plt.savefig(args.output_dir+os.sep+args.prefix+str(tp)+'_domains.png')
         plt.close()
 
-def plot_OT(args):
+def plot_OT(args, adata):
     """
     Plot the optimal transport results.
     
@@ -125,15 +125,35 @@ def plot_OT(args):
     -------
     None
     """
-
-    # --- normalize by column sum
-    transition_prob = transition_table.X
-    transition_prob = transition_prob/transition_prob.sum(axis=0, keepdims=True)
-    transition_prob_df = pd.DataFrame(transition_prob, index=transition_table.obs_names, columns=transition_table.var_names)
-    transition_prob_df.to_csv(args.output_dir+os.sep+'transition_prob_'+str(prev_day)+'_'+str(next_day)+'_col_norm.csv')
-    # --- normalize by row sum
-    transition_prob = transition_table.X
-    transition_prob = transition_prob/transition_prob.sum(axis=1, keepdims=True)
-    transition_prob_df = pd.DataFrame(transition_prob, index=transition_table.obs_names, columns=transition_table.var_names)
-    transition_prob_df.to_csv(args.output_dir+os.sep+'transition_prob_'+str(prev_day)+'_'+str(next_day)+'_row_norm.csv')
-    pass
+    days = adata.obs['day'].unique()
+    days.sort()
+    for tp_i in range(len(days)-1):
+        prev_day = days[tp_i]
+        next_day = days[tp_i+1]
+        transition_table = anndata.read_h5ad(args.output_dir+os.sep+'transition_table_'+str(prev_day)+'_'+str(next_day)+'.h5ad')
+        # --- normalize by column sum
+        transition_prob = transition_table.X
+        transition_prob = transition_prob/transition_prob.sum(axis=0, keepdims=True)
+        transition_prob_col_norm_df = pd.DataFrame(transition_prob, index=transition_table.obs_names, columns=transition_table.var_names)
+        # --- normalize by row sum
+        transition_prob = transition_table.X
+        transition_prob = transition_prob/transition_prob.sum(axis=1, keepdims=True)
+        transition_prob_row_norm_df = pd.DataFrame(transition_prob, index=transition_table.obs_names, columns=transition_table.var_names)
+        # --- obtain minimum of both normalized transition probabilities
+        transition_prob_min_df = np.minimum(transition_prob_col_norm_df.values, transition_prob_row_norm_df.values)
+        # Generate a dotplot for transition_prob_min_df with dynamic figure size
+        plt.figure(figsize=(transition_prob_min_df.shape[1]*0.8, transition_prob_min_df.shape[0]*0.8))
+        for i in range(transition_prob_min_df.shape[0]):
+            for j in range(transition_prob_min_df.shape[1]):
+                value = transition_prob_min_df[i, j]
+                color = 'grey' if value < 0.2 else plt.cm.Reds(value)
+                plt.scatter(j, i, s=value * 500, c=[color], edgecolors='black', alpha=0.8)
+        plt.xticks(range(transition_prob_min_df.shape[1]), transition_table.var_names, rotation=45, ha='right')
+        plt.yticks(range(transition_prob_min_df.shape[0]), transition_table.obs_names)
+        plt.xlabel('{} Domains'.format(next_day))
+        plt.ylabel('{} Domains'.format(prev_day))
+        plt.title('Transition Probability Dotplot')
+        plt.colorbar(plt.cm.ScalarMappable(cmap='Reds'), label='Transition Probability')
+        plt.tight_layout()
+        plt.savefig(args.output_dir+os.sep+f'transition_dotplot_{prev_day}_{next_day}.png')
+        plt.close()

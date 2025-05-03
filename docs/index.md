@@ -175,12 +175,17 @@ Once the training stage finishes, we can obtain spatial domains and generate dom
 SpaDOT analyze --data latent.h5ad --n_clusters 5,7,7,6
 ```
 
-Output domains:
-
+#### Output domains
 
 | Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
 |-----------|-------|-------|--------|--------|
 | Spatial Domains | ![Day 4](0_domains.png) | ![Day 7](1_domains.png) | ![Day 10](2_domains.png) | ![Day 14](3_domains.png) | 
+
+#### Output OT analysis
+
+| Timepoint | Day 4 --> Day 7 | Day 7 --> Day 10 | Day 10 --> Day 14 | 
+|-----------|-----------------|------------------|-------------------|
+| OT transition | ![Day 4to7](transition_dotplot_0_1.png) | ![Day 7to10](transition_dotplot_1_2.png) |  ![Day 10to14](transition_dotplot_2_3.png) |
 
 **Step 5: infer spatial domains and domain dynamics based on Elbow method (Optional)**
 

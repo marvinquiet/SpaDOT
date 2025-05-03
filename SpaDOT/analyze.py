@@ -14,9 +14,9 @@ def analyze(args):
     _analyze_utils.plot_domains(args, latent)
 
     # perform optimal transport analysis
-    # _analyze_utils.OT_analysis(args, latent)
+    _analyze_utils.OT_analysis(args, latent)
     # plot OT results
-    # _analyze_utils.plot_OT(args)
+    # _analyze_utils.plot_OT(args, latent)
 
 
 
