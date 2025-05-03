@@ -9,9 +9,15 @@ Siyu Hou, Department of Biostatistics, University of Michigan
 
 **Maintainer:** [Wenjing Ma](https://marvinquiet.github.io/) (wenjinma@umich.edu)
 
-**Latest revision:** 04/28/2025
+**Latest revision:** 05/03/2025
 
-### Introduction
+# Table of Contents
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Example 1: developing chicken heart](#example-1-developing-chicken-heart)
+- [Conclusion](#conclusion)
+
+# Introduction
 
 Spatiotemporal transcriptomics is an emerging and powerful approach that adds a temporal dimension to traditional spatial transcriptomics, thus enabling the characterization of dynamic changes in tissue architecture during development or disease progression. Tissue architecture is generally organized into spatial domains -- regions within a tissue characterized by relatively similar gene expression profiles that often correspond to distinct biological functions. Crucially, these spatial domains are not static; rather, they undergo complex temporal dynamics during development, differentiation, and disease progression, resulting in emergence, disappearance, splitting, and merging of domains over time. Therefore, we develop SpaDOT (**Spa**tial **DO**main **T**ransition detection), a novel and scalable machine learning method for identifying spatial domains and inferring their temporal dynamics in spatiotemporal transcriptomics studies.
 
@@ -24,7 +30,7 @@ Spatiotemporal transcriptomics is an emerging and powerful approach that adds a 
 
 In this tutorial, we provide detailed instructions for SpaDOT by utilizing two real data applications: a developing chicken heart sequenced by 10X Vision and a developing mouse brain sequenced by Stereo-seq. 
 
-### Installation
+# Installation
 
 **Step 1**: SpaDOT is developed as a Python package. You will have to install Python, and the recommended version is **Python 3.9**. SpaDOT also incorporates an R package [SPARK-X](https://github.com/xzhoulab/SPARK) to perform feature selection as an option. Having the spatial variable genes selected is a practice that we test can generate better results. Therefore, installiation of R and SPARK-X is recommended.
 
@@ -62,22 +68,46 @@ optional arguments:
 
 In each module, you can use `-h` to show related help pages. For example, `SpaDOT preprocess -h`.
 
-**Step 4 (Optional):** If you would like to use SpaDOT with-in program, you can do:
+**Step 4 (Optional):** If you would like to use SpaDOT with-in program, you can do the following and pass the correct arguments into corresponding functions.
 
 ```
 import SpaDOT
 
-# load your own data into anndata, with `timepoint` indicating from which time point the data is collected. 
-preprocessed_adata = SpaDOT.preprocess(adata)
-SpaDOT.train(preprocessed_adata, SpaDOT.config) # train with default configuration
-# load obtained latent data and analyze
-latent_adata = anndata.read_h5ad('./latent.h5ad')
-SpaDOT.analyze(latent_adata)
+data_dir = "./examples"
+# create arguments for preprocessing
+class Args:
+    data = os.path.join(data_dir, "ChickenHeart.h5ad")
+    prefix = "preprocessed_"
+    feature_selection = True
+args = Args()
+# create output directory if not exists
+if 'output_dir' not in args.__dict__:
+    args.output_dir = os.path.dirname(args.data)
+if not os.path.exists(args.output_dir):
+    os.makedirs(args.output_dir)
+SpaDOT.preprocess(args)
+
+# create arguments for training
+class Args:
+    data = os.path.join(data_dir, "preprocessed_ChickenHeart.h5ad")
+    prefix = ""
+    config = None
+    save_model = True
+args = Args()
+SpaDOT.train(args) 
+
+# create arguments for analyses
+class Args:
+    data = os.path.join(data_dir, "latent.h5ad")
+    prefix = ""
+    n_clusters = [5, 7, 7, 6]
+args = Args()
+SpaDOT.analyze(args)
 ```
 
 ---
 
-### Example 1: developing chicken heart
+# Example 1: developing chicken heart
 
 The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. In this dataset, SpaDOT accurately identifies valvulogenesis - a valve splits into artrioventricular valve and semilunar valve at Day 14.
 
@@ -164,7 +194,7 @@ In the end, you will obtain a colored spatial domains as well as corresponding d
 
 
 
-### Conclusion
+# Conclusion
 
 SpaDOT provides efficient and accurate spatial domain detection for spatiotemporal transcriptomics studies and offers insights into domain transition dynamics. Its contributions are three-fold:
 
