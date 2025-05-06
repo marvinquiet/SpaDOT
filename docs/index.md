@@ -41,6 +41,26 @@ pip install SpaDOT
 ```
 The installation will take seconds to finish and the software dependencies have been taken care of by pip. We have tested our package on Windows, MacOS, and Linux. 
 
+You will also have to install your version (based on your pytorch and cuda version) of `pyg` or `torch-sparse` and then install `torch-geometric`, more details can be found [here](https://github.com/pyg-team/pyg-lib). In my scenario:
+
+```
+pip install pyg-lib torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.5.0+cu124.html
+
+pip install torch-geometric -f https://data.pyg.org/whl/torch-2.5.0+cu124.html
+```
+
+#### Trouble shooting
+
+To make life easier, I would highly recommend using a [conda](https://docs.conda.io/projects/conda/en/stable/user-guide/getting-started.html) environment.
+
+```
+conda create -n SpaDOT python=3.9
+pip install SpaDOT
+```
+
+Then, install `pyg-lib` and `torch-geometric` based on your `import torch; torch.__version__`.
+
+
 **Step 3**: If you have successfully installed SpaDOT, you can try the following command:
 
 ```shell
@@ -66,7 +86,22 @@ optional arguments:
   -h, --help            show this help message and exit
 ```
 
-In each module, you can use `-h` to show related help pages. For example, `SpaDOT preprocess -h`.
+In each module, you can use `-h` to show related help pages. For example, `SpaDOT train -h`:
+
+```
+usage: SpaDOT train [-h] [-i DATA] [-o OUTPUT_DIR] [--prefix PREFIX] [--config CONFIG] [--device DEVICE] [--save_model]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i DATA, --data DATA  A anndata object containing time point information and spatial coordinates.
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        Output directory to store latent representations. Default: the same as where the data locates.
+  --prefix PREFIX       Prefix for output latent representations. Default: ''
+  --config CONFIG       Path to the config file, in a yaml format.
+  --device DEVICE       Device to use for training. Default: cuda:0
+  --save_model          Whether saving the trained model. If specified, the trained model will be stored in the output_dir as 'model.pt'.
+```
+
 
 **Step 4 (Optional):** If you would like to use SpaDOT with-in program, you can do the following and pass the correct arguments into corresponding functions.
 

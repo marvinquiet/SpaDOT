@@ -41,6 +41,8 @@ def parse_args():
             type=str, default='', help="Prefix for output latent representations. Default: ''")
     train_parser.add_argument('--config', dest='config',
             type=str, help="Path to the config file, in a yaml format.")
+    train_parser.add_argument('--device', dest='device',
+            type=str, default='cuda:0', help="Device to use for training. Default: cuda:0")
     train_parser.add_argument('--save_model', dest='save_model',
             default=False, action="store_true",
             help="Whether saving the trained model. If specified, the trained model will be stored in the output_dir as 'model.pt'.")
@@ -81,7 +83,7 @@ def main():
         from SpaDOT import train
         if not os.path.exists(args.data):
             sys.exit("The preprocessed data does not exist! Please make sure the data is correctly specified.")
-        train.train_SpaDOT(args)
+        train.train(args)
 
     ## analyze latent representations
     if "analyze" == args.cmd_choice:

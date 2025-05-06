@@ -3,7 +3,11 @@ import anndata
 from SpaDOT.utils import _analyze_utils
 
 def analyze(args):
-    latent = anndata.read_h5ad(args.data)
+    data_dir = os.path.abspath(args.data)
+    if not args.output_dir:
+        args.output_dir = os.path.dirname(data_dir)
+
+    latent = anndata.read_h5ad(data_dir)
     if args.n_clusters is None:
         latent = _analyze_utils.Adaptive_clustering(args, latent)
     else:

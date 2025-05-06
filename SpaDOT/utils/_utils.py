@@ -87,7 +87,7 @@ def _Cal_Spatial_Net(adata, k_cutoff=None, max_neigh=30):
     G_df['Cell1'] = G_df['Cell1'].map(cells_id_tran)
     G_df['Cell2'] = G_df['Cell2'].map(cells_id_tran)
     G = sp.sparse.coo_matrix((np.ones(G_df.shape[0]), (G_df['Cell1'], G_df['Cell2'])), shape=(adata.n_obs, adata.n_obs))
-    G = G + sp.eye(G.shape[0])  # add self-loop
+    G = G + np.eye(G.shape[0])  # add self-loop
     adata.uns['adj'] = G
 
 def _save_inducing_points(args, inducing_points_dict):
@@ -106,4 +106,4 @@ def _save_inducing_points(args, inducing_points_dict):
     inducing_points_df = pd.concat(inducing_points_list, ignore_index=True)
 
     # Save to a file
-    inducing_points_df.to_csv(args.output_dir+os.sep+"inducing_points.csv", index=False)
+    inducing_points_df.to_csv(args.output_dir+os.sep+args.prefix+"inducing_points.csv", index=False)

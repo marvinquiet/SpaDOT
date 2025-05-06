@@ -10,16 +10,22 @@ setup(
     author_email="mawenjing1993@gmail.com",
     url="https://http://marvinquiet.github.io/SpaDOT",
     packages=find_packages(),
+    package_data={
+        "SpaDOT.utils.OT_loss": ["libot.so"],  # Include the .so file
+        "SpaDOT": ["config.yaml"] # Include the config.yaml file
+    },
     install_requires=[
-        "torch==2.0.1",
-        "torch_geometric==2.6.1",
+        "torch==2.5.0",
+        "torchvision",
+        "torchaudio",
+        # "torch_geometric==2.6.1", # install after pyg-lib, torch-sparse and torch-scatter
         "anndata==0.9.1",
         "scanpy==1.9.8",
         "wot==1.0.8",
-        "numpy < 2.0.0", # compatible with scanpy 1.9.8
+        "numpy<2.0.0", # compatible with scanpy 1.9.8
         "pandas",
+        "scipy", 
         "scikit-learn",  # sklearn is part of scikit-learn
-        "scipy",
         "matplotlib",
         "seaborn",
         "tqdm",

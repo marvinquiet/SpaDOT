@@ -20,15 +20,15 @@ It is recommended to run SpaDOT on a GPU to achieve faster execution times.
 SpaDOT requires the following:
 
 - [python](https://www.python.org/) (version 3.9 recommended)
-- [torch](https://pytorch.org/) (v2.0.1)
-- [torch_geometric](https://pytorch-geometric.readthedocs.io/en/latest/) (v2.6.1)
+- [torch](https://pytorch.org/) (v2.5.0)
 - [anndata](https://anndata.readthedocs.io/en/latest/) (v0.9.1)
 - [scanpy](https://scanpy.readthedocs.io/en/stable/) (v1.9.8)
-- [numpy](https://numpy.org/) (v1.22.4)
-- [pandas](https://pandas.pydata.org/) (v1.3.5)
-- [sklearn](https://scikit-learn.org/) (v1.3.0)
-<!-- - [rpy2](https://rpy2.github.io/) (v3.5.17) -->
+- [numpy](https://numpy.org/) 
+- [pandas](https://pandas.pydata.org/)
+- [wot](https://github.com/broadinstitute/wot)
 - `cuda toolkit` and `nvidia cudnn` when using GPU resources, more information can be found [here](https://towardsdatascience.com/setting-up-tensorflow-gpu-with-cuda-and-anaconda-onwindows-2ee9c39b5c44)
+- [torch_geometric](https://pytorch-geometric.readthedocs.io/en/latest/), this package is dependent on torch version and cuda version.
+
 
 **Note:** If using GPU resources, you might also need to install the CUDA Toolkit and NVIDIA cuDNN libraries. Detailed setup instructions can be found [here](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/). Please make sure to install a compatible version for PyTorch.
 

@@ -6,7 +6,11 @@ from SpaDOT.utils import _train_utils, _utils
 def train(args):
     # --- load data ---
     print("Loading data...")
-    adata = anndata.read_h5ad(args.data)
+    data_dir = os.path.abspath(args.data)
+    if not args.output_dir:
+        args.output_dir = os.path.dirname(data_dir)
+
+    adata = anndata.read_h5ad(data_dir)
     model_config = _utils.load_model_config(args)
     # add adata related parameters to model_config
     model_config['input_dim'] = adata.n_vars
@@ -14,7 +18,7 @@ def train(args):
     tps.sort()
     model_config['timepoints'] = tps
     # add device and dtype to model_config
-    model_config['device'] = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    model_config['device'] = torch.device(args.device)
     model_config['dtype'] = torch.float64
 
     _utils.set_seed(model_config['seed'])
@@ -42,6 +46,7 @@ if __name__ == "__main__":
         prefix = ""
         config = None
         save_model = True
+        device = 'cuda:0'
     args = Args()
     # create output directory if not exists
     if 'output_dir' not in args.__dict__:

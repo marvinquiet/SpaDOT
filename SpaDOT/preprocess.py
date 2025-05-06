@@ -15,6 +15,7 @@ def preprocess(args):
     if not args.output_dir:
         args.output_dir = os.path.dirname(data_dir)
     adata = anndata.read_h5ad(data_dir)
+
     # check if `timepoint` in adata.obs
     if 'timepoint' not in adata.obs.columns:
         raise ValueError("The `timepoint` column is not found in adata.obs. Please make sure timepoint information is given.")
