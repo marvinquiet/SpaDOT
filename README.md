@@ -1,4 +1,6 @@
 # SpaDOT
+
+[![PyPI version](https://badge.fury.io/py/SpaDOT.svg?icon=si%3Apython)] [![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-360/) 
 Software for the manuscript "Optimal Transport Modeling Uncovers Spatial Domain Dynamics in Spatiotemporal Transcriptomics"
 
 SpaDOT is an open-source computational method for identifying spatial domains and inferring their temporal dynamics across time points for spatiotemporal transcriptomics studies. Detailed documentation and tutorials are available at: https://marvinquiet.github.io/SpaDOT/.
