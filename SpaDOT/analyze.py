@@ -1,6 +1,6 @@
 import os
 import anndata
-from utils import _analyze_utils
+from SpaDOT.utils import _analyze_utils
 
 def analyze(args):
     latent = anndata.read_h5ad(args.data)

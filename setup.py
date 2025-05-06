@@ -16,7 +16,7 @@ setup(
         "anndata==0.9.1",
         "scanpy==1.9.8",
         "wot==1.0.8",
-        "numpy",
+        "numpy < 2.0.0", # compatible with scanpy 1.9.8
         "pandas",
         "scikit-learn",  # sklearn is part of scikit-learn
         "scipy",

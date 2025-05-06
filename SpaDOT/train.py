@@ -1,8 +1,7 @@
 import os
 import anndata
 import torch
-
-from utils import _train_utils, _utils
+from SpaDOT.utils import _train_utils, _utils
  
 def train(args):
     # --- load data ---
