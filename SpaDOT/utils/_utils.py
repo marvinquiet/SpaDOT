@@ -1,7 +1,7 @@
 # --- other utilitities functions ---
 import os
 import yaml
-from importlib.resources import files
+# from importlib.resources import files
 import sklearn
 import scipy as sp
 import numpy as np

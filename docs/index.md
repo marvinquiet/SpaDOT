@@ -132,7 +132,7 @@ chicken_heart_spatial_RNAseq_D14_tissue_positions_list.csv
 
 Third, we used the script `process_ChickenHeart.py` provided [here](https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py) to preprocess the data by integrating them into one anndata with `timepoint` in anndata observations (obs) as one-hot encoder indicating four time points, `0`, `1`, `2` and `3` indicate Day 4, Day 7, Day 10 and Day 14, respectively. We have also put the spatial coordinates with keyword `spatial` as a numpy array inside anndata observation metadata (obsm).
 
-After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHeart.h5ad`.
+After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHeart.h5ad`. For your convenience, you can download the processed data [here](https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0).
 
 **Step 2: perform data preprocessing**
 

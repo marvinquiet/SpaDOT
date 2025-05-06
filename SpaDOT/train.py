@@ -3,8 +3,7 @@ import anndata
 import torch
 
 from utils import _train_utils, _utils
-
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')  
+ 
 def train(args):
     # --- load data ---
     print("Loading data...")
@@ -16,7 +15,7 @@ def train(args):
     tps.sort()
     model_config['timepoints'] = tps
     # add device and dtype to model_config
-    model_config['device'] = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+    model_config['device'] = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model_config['dtype'] = torch.float64
 
     _utils.set_seed(model_config['seed'])
