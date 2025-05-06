@@ -2,6 +2,9 @@ import os
 import anndata
 import torch
 from SpaDOT.utils import _train_utils, _utils
+
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="torch") # this is for suppressing UserWarning from torch.tensor
  
 def train(args):
     # --- load data ---

@@ -202,7 +202,7 @@ def plot_OT(args, adata):
         plt.xlabel('{} Domains'.format(next_day))
         plt.ylabel('{} Domains'.format(prev_day))
         plt.title('Transition Probability Dotplot')
-        plt.colorbar(plt.cm.ScalarMappable(cmap='Reds'), label='Transition Probability')
+        plt.colorbar(plt.cm.ScalarMappable(cmap='Reds'), label='Transition Probability', ax=plt.gca())
         plt.tight_layout()
         plt.savefig(args.output_dir+os.sep+f'transition_dotplot_{prev_day}_{next_day}.png')
         plt.close()
