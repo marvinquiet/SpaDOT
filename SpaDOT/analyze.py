@@ -22,7 +22,6 @@ def analyze(args):
     _analyze_utils.plot_OT(args, latent)
 
 
-
 if __name__ == "__main__":
     data_dir = "./examples"
     # create arguments for testing

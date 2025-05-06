@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="SpaDOT",
-    version="0.1.0",
+    version="1.0.0",
     description="Package for paper: Optimal transport modeling uncovers spatial domain dynamics in spatiotemporal transcriptomics",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
