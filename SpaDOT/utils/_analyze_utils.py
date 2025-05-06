@@ -38,23 +38,72 @@ def KMeans_Clustering(adata, n_clusters):
     merged_adata = anndata.concat(tp_adata_list, axis=0)
     return merged_adata
 
-def Adaptive_Clustering(adata):
+
+def Adaptive_clustering(args, adata, min_clusters=4, max_clusters=20, wss_threshold=0.1):
     """
-    Perform adaptive clustering on the spatial data based on Elbow method.
-    
-    Parameters
-    ----------
+    Perform adaptive clustering using KMeans and calculate WSS (Within-Cluster Sum of Squares).
+    Then calculate the difference between consecutive clusters and the ratio between consecutive differences.
+
+    Parameters:
+    -----------
     adata : anndata.AnnData
-        The AnnData object containing the spatial data.    
-    Returns
-    -------
-    adata : anndata.AnnData
-        The AnnData object with the clustering results added to the obs.
+        The AnnData object containing the data to cluster.
+    max_clusters : int, optional
+        The maximum number of clusters to test. Default is 20.
+    min_clusters : int, optional
+        The minimum number of clusters to test. Default is 5.
+
+    Returns:
+    --------
+    dict
+        A dictionary containing WSS values, differences, and ratios for each number of clusters.
     """
-    
-    # Perform adaptive clustering
-    
-    return adata
+
+    tps = adata.obs['timepoint'].unique()
+    tps.sort()
+    tp_adata_list = []
+    for i, tp in enumerate(tps):
+        # perform KMeans clustering
+        tp_adata = adata[adata.obs['timepoint'] == tp].copy()
+        # Store WSS for each number of clusters
+        wss = []
+        # Perform KMeans clustering for each number of clusters
+        for k in range(min_clusters, max_clusters + 1):
+            kmeans = KMeans(n_clusters=k, random_state=1993, n_init=10).fit(tp_adata.X)
+            wss.append(kmeans.inertia_)
+        # Calculate wss and ratios
+        wss_diff = -np.diff(wss)
+        wss_diff_ratios = [wss_diff[i] / wss_diff[i + 1] for i in range(len(wss_diff)-1)]
+        wss_df = pd.DataFrame({
+            'clusters': range(min_clusters, max_clusters + 1),
+            'wss': wss,
+            'wss_diff': [None] + list(wss_diff),
+            'wss_diff_ratio': [None] + list(wss_diff_ratios) + [None]
+        })
+        wss_range = wss_df['wss'].max() - wss_df['wss'].min()
+        wss_diff_threshold = wss_threshold * wss_range
+        filtered_wss_df = wss_df[wss_df['wss_diff'] > wss_diff_threshold]
+        max_idx = filtered_wss_df['wss_diff_ratio'].idxmax()
+        wss_cluster = filtered_wss_df['clusters'][max_idx]
+        highlight_wss = filtered_wss_df['wss'][max_idx]
+        # plot wss per cluster
+        plt.figure(figsize=(10, 6))
+        plt.plot(wss_df['clusters'], wss_df['wss'], marker='o')
+        plt.scatter(wss_cluster, highlight_wss, color='red', s=100, label='Selected Cluster')
+        plt.title('WSS vs Number of Clusters')
+        plt.xlabel('Number of Clusters')
+        plt.ylabel('WSS')
+        plt.xticks(wss_df['clusters'])
+        plt.grid()
+        plt.savefig(args.output_dir+os.sep+args.prefix+str(tp)+'_WSS_vs_Clusters.png')
+        plt.close()
+        tp_adata.obs['kmeans'] = KMeans(n_clusters=wss_cluster, 
+                                        random_state=1993, n_init=10).fit(tp_adata.X).labels_.astype(str)
+        tp_adata_list.append(tp_adata)
+    # merge all timepoints
+    merged_adata = anndata.concat(tp_adata_list, axis=0)
+    return merged_adata
+
 
 def OT_analysis(args, adata):
     """

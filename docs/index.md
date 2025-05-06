@@ -175,7 +175,7 @@ Once the training stage finishes, we can obtain spatial domains and generate dom
 SpaDOT analyze --data latent.h5ad --n_clusters 5,7,7,6
 ```
 
-#### Output domains
+#### Output spatial domains
 
 | Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
 |-----------|-------|-------|--------|--------|
@@ -195,8 +195,21 @@ Or, we can leave out the `--n_clusters` option, then SpaDOT would automatically 
 SpaDOT analyze --data latent.h5ad
 ```
 
-In the end, you will obtain a colored spatial domains as well as corresponding domain transition dot plots.
+We then have the plot of calculating the within-cluster sum of squares (WSS) of KMeans with the number of clusters ranging from 5 to 20. We then  detect the Elbow point and select the corresponding cluster number.
 
+
+### Output WSS per cluster and spatial domains
+
+| Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
+|-----------|-------|-------|--------|--------|
+| WSS per cluster | ![Day 4](0_WSS_vs_Clusters.png) | ![Day 7](1_WSS_vs_Clusters.png) | ![Day 10](2_WSS_vs_Clusters.png) | ![Day 14](0_WSS_vs_Clusters.png) | 
+| Spatial Domains | ![Day 4](0_domains_adaptive.png) | ![Day 7](1_domains_adaptive.png) | ![Day 10](2_domains_adaptive.png) | ![Day 14](3_domains_adaptive.png) | 
+
+### Output OT analysis
+
+| Timepoint | Day 4 --> Day 7 | Day 7 --> Day 10 | Day 10 --> Day 14 | 
+|-----------|-----------------|------------------|-------------------|
+| OT transition | ![Day 4to7](transition_dotplot_0_1_adaptive.png) | ![Day 7to10](transition_dotplot_1_2_adaptive.png) |  ![Day 10to14](transition_dotplot_2_3_adaptive.png) |
 
 
 # Conclusion
