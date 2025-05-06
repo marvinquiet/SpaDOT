@@ -20,7 +20,7 @@ setup(
         "torchaudio",
         # "torch_geometric==2.6.1", # install after pyg-lib, torch-sparse and torch-scatter
         "anndata==0.9.1",
-        "scanpy==1.9.1",
+        "scanpy==1.9.8",
         "numpy<2.0.0", # compatible with scanpy 1.9.8
         "wot", # Optimal transport library
         "pandas",

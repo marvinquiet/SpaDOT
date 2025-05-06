@@ -31,6 +31,7 @@ def parse_args():
     # --prefix
     # --config
     # --save_model
+    # --device
     # ============================
     train_parser = subparsers.add_parser('train', help='Train a SpaDOT model.')
     train_parser.add_argument('-i', '--data', dest='data', 
@@ -76,21 +77,21 @@ def main():
         from SpaDOT import preprocess
         if not os.path.exists(args.data):
             sys.exit("The data does not exist! Please make sure the data is correctly specified.")
-        preprocess.preprocess(args)
+        preprocess(args)
         
     ## train to obtain latent representations
     if "train" == args.cmd_choice:
         from SpaDOT import train
         if not os.path.exists(args.data):
             sys.exit("The preprocessed data does not exist! Please make sure the data is correctly specified.")
-        train.train(args)
+        train(args)
 
     ## analyze latent representations
     if "analyze" == args.cmd_choice:
         from SpaDOT import analyze
         if not os.path.exists(args.data):
             sys.exit("The latent representations does not exist! Please make sure the latent representations are correctly generated from the last step.")
-        analyze.analyze(args)
+        analyze(args)
 
 if __name__ == "__main__":
     main()
