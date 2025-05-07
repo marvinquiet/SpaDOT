@@ -1,6 +1,6 @@
 # SpaDOT
 
-[![PyPI version](https://badge.fury.io/py/SpaDOT.svg?icon=si%3Apython)](https://pypi.org/project/SpaDOT/) [![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-360/) 
+[![PyPI version](https://badge.fury.io/py/SpaDOT.svg?icon=si%3Apython)](https://pypi.org/project/SpaDOT/) [![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/) 
 
 
 Software for the manuscript "Optimal Transport Modeling Uncovers Spatial Domain Dynamics in Spatiotemporal Transcriptomics"
