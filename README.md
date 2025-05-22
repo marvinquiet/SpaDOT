@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/SpaDOT.svg?icon=si%3Apython)](https://pypi.org/project/SpaDOT/) [![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/) 
 
 
-Software for the manuscript "Optimal Transport Modeling Uncovers Spatial Domain Dynamics in Spatiotemporal Transcriptomics"
+Software for the manuscript "Optimal Transport Modeling Uncovers Spatial Domain Dynamics in Spatiotemporal Transcriptomics". First trial in wrapping a code pipeline using GitHub Copilot, inspired by Robert from the Xiang Zhou Lab ([website](https://rlangefe.github.io/)).
 
 SpaDOT is an open-source computational method for identifying spatial domains and inferring their temporal dynamics across time points for spatiotemporal transcriptomics studies. Detailed documentation and tutorials are available at: https://marvinquiet.github.io/SpaDOT/.
 
