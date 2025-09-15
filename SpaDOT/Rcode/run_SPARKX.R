@@ -3,7 +3,8 @@
 Sys.setenv(RETICULATE_PYTHON = "/net/mulan/home/wenjinma/envs/spatialATAC/bin/python")
 
 # --- to run this script, please install the following packages ---
-#install.packages("SPARKX")
+#install.packages('devtools')
+#devtools::install_github('xzhoulab/SPARK')
 #install.packages("Seurat")
 #install.packages("reticulate")
 #install.packages("anndata")
