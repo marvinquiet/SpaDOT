@@ -46,6 +46,7 @@ def preprocess_adata(args, adata):
     preprocessed_adata = anndata.concat(new_tp_adata_list)
     return preprocessed_adata
 
+
 def _get_SVGs(args, tps):
     '''
     Run SPARKX to select SVGs.
@@ -71,3 +72,8 @@ def _get_SVGs(args, tps):
     SVG_genes = list(set(SVG_genes))
     SVG_genes.sort()
     return SVG_genes
+
+
+def _run_sparkx(args):
+    from SpaDOT.utils.sctransform import SCTransform
+    pass

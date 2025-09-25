@@ -1,0 +1,1 @@
+Instead of installing Stereopy package, I directly used the folder stereo/algorithm/sctransform from https://github.com/STOmics/Stereopy/

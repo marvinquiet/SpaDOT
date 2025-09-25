@@ -1,12 +1,12 @@
 import os
 import anndata
-from SpaDOT.utils import _analyze_utils
+# from SpaDOT.utils import _analyze_utils
+from utils import _analyze_utils # for debugging
 
 def analyze(args):
     data_dir = os.path.abspath(args.data)
     if not args.output_dir:
         args.output_dir = os.path.dirname(data_dir)
-
     latent = anndata.read_h5ad(data_dir)
     if args.n_clusters is None:
         latent = _analyze_utils.Adaptive_clustering(args, latent)
@@ -23,13 +23,14 @@ def analyze(args):
 
 
 if __name__ == "__main__":
-    data_dir = "./examples"
+    # data_dir = "./examples"
+    data_dir = "/net/mulan/home/wenjinma/projects/SpaDOT/examples_Python_version"
     # create arguments for testing
     class Args:
         data = os.path.join(data_dir, "latent.h5ad")
         prefix = ""
-        # n_clusters = [5, 7, 7, 6]
-        n_clusters = None
+        n_clusters = [5, 7, 7, 6]
+        # n_clusters = None
     args = Args()
     # create output directory if not exists
     if 'output_dir' not in args.__dict__:

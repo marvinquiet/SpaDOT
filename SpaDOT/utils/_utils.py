@@ -22,9 +22,9 @@ def set_seed(seed=1993):
     g = torch.Generator()
     g.manual_seed(seed) # for stabilization
 
-def seed_worker(worker_id):
-    np.random.seed(1993)
-    random.seed(1993)
+def seed_worker(worker_id=1993):
+    np.random.seed(worker_id)
+    random.seed(worker_id)
 
 def load_model_config(args):
     '''

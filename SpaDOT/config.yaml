@@ -40,9 +40,9 @@ ot_config:
   growth_iters: 3  # Number of growth iterations for OT
   ot_epochs: 10  # Number of epochs for OT
   epsilon: 0.05  # Entropic regularization parameter for OT
+  epsilon0: 1 # set a large epsilon 0 to avoid overflow
   lambda1: 0.1  # Regularization parameter for OT row imbalance
   lambda2: 5.0  # Regularization parameter for OT column imbalance
-  epsilon0: 1  # Initial value of epsilon for OT
   tau: 1000  # Scaling factor for OT
   scaling_iter: 3000  # Number of scaling iterations for OT
   inner_iter_max: 50  # Maximum number of inner iterations for OT

@@ -2,7 +2,8 @@ import os
 import random
 import numpy as np
 import anndata
-from SpaDOT.utils import _preprocess_utils
+# from SpaDOT.utils import _preprocess_utils
+from utils import _preprocess_utils # for debugging
 
 seed=1993
 random.seed(seed)
@@ -29,7 +30,8 @@ def preprocess(args):
     preprocessed_adata.write_h5ad(os.path.join(args.output_dir, args.prefix + os.path.basename(data_dir)))
 
 if __name__ == '__main__':
-    data_dir = "./examples"
+    # data_dir = "./examples"
+    data_dir = "/net/mulan/home/wenjinma/projects/SpaDOT/examples_Python_version"
     # create arguments for testing
     class Args:
         data = os.path.join(data_dir, "ChickenHeart.h5ad")

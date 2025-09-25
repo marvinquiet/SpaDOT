@@ -1,7 +1,8 @@
 import os
 import anndata
 import torch
-from SpaDOT.utils import _train_utils, _utils
+# from SpaDOT.utils import _train_utils, _utils
+from utils import _train_utils, _utils # for debugging
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torch") # this is for suppressing UserWarning from torch.tensor
@@ -42,7 +43,8 @@ def train(args):
     latent_adata.write_h5ad(args.output_dir+os.sep+args.prefix+'latent.h5ad')
 
 if __name__ == "__main__":
-    data_dir = "./examples"
+    # data_dir = "./examples"
+    data_dir = "/net/mulan/home/wenjinma/projects/SpaDOT/examples_Python_version"
     # create arguments for testing
     class Args:
         data = os.path.join(data_dir, "preprocessed_ChickenHeart.h5ad")
@@ -51,6 +53,7 @@ if __name__ == "__main__":
         save_model = True
         device = 'cuda:0'
     args = Args()
+    print(args)
     # create output directory if not exists
     if 'output_dir' not in args.__dict__:
         args.output_dir = os.path.dirname(args.data)
