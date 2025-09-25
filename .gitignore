@@ -7,6 +7,8 @@ __pycache__/
 *.pth 
 # examples folder
 *examples*/
+# test folder
+*test*/
 
 # C extensions
 #*.so
