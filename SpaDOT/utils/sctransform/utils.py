@@ -12,8 +12,7 @@ from scipy import interpolate
 from scipy.special import digamma
 from scipy.special import polygamma
 
-# from .bw import bwSJ
-from bw import bwSJ
+from .bw import bwSJ
 
 def multi_pearson_residual(i, model_pars_final, regressor_data_final, umi, residual_type, min_variance, genes, bin_ind):
     min_var = min_variance

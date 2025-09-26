@@ -6,11 +6,8 @@ from typing import Union
 import numpy as np
 from scipy.sparse import csr_matrix
 
-# from .scale_data import ScaleData
-# from .vst import vst
-
-from scale_data import ScaleData
-from vst import vst
+from .scale_data import ScaleData
+from .vst import vst
 
 def SCTransform(
         umi: Optional[csr_matrix],

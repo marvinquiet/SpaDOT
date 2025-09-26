@@ -121,7 +121,7 @@ def OT_analysis(args, adata):
     adata.obs['day'] = adata.obs['timepoint'].astype('category').cat.codes
     adata.obs['cell_growth_rate'] = 1 # initialize as 1
     # larger epsilon0 to avoid overflow
-    ot_model = wot.ot.OTModel(adata, epsilon = 0.01, epsilon0 = 5, lambda1 = 0.1,lambda2 = 5, growth_iters=3) # imbalanced OT with imbalanced row and comparatiely balanced target
+    ot_model = wot.ot.OTModel(adata, epsilon = 0.05, epsilon0 = 1, lambda1 = 0.1,lambda2 = 5, growth_iters=3) # imbalanced OT with imbalanced row and comparatiely balanced target
     ot_model.compute_all_transport_maps(tmap_out=args.output_dir+os.sep+'OT') # compute transport maps
     tmap_model = wot.tmap.TransportMapModel.from_directory(args.output_dir+os.sep+'OT')
     # generate region dict

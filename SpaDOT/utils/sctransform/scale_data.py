@@ -3,34 +3,6 @@ import numpy as np
 import pandas as pd
 
 
-@numba.jit(cache=True, forceobj=True)
-def fast_row_scale(mat, center=True, scale=True, scale_max=10):
-    # TODO: ignore `scale`
-    rm = None
-    if center:
-        # the seurat SCT is `float32`
-        rm = np.mat(mat.mean(1), dtype=np.float32).T
-    if center:
-        mat = mat - rm
-    if scale_max != np.Inf:
-        mat[mat > scale_max] = scale_max
-    return mat
-
-
-@numba.jit(cache=True, forceobj=True)
-def fast_row_scale_sparse(mat, center=True, scale=True, scale_max=10):
-    # TODO: ignore `scale`
-    rm = None
-    if center:
-        # TODO: `float32` the seurat SCT result
-        rm = np.mat(mat.mean(1), dtype=np.float32)
-    if center:
-        mat = mat - rm
-    if scale_max != np.Inf:
-        mat[mat > scale_max] = scale_max
-    return mat
-
-
 def ScaleData(
         scale_data: pd.DataFrame,
         features=None,
@@ -69,3 +41,30 @@ def ScaleData(
         }
         scaled_data.loc[features[my_inds]] = fast_row_scale(**arg_list)
     return scaled_data
+
+@numba.jit(cache=True, forceobj=True)
+def fast_row_scale(mat, center=True, scale=True, scale_max=10):
+    # TODO: ignore `scale`
+    rm = None
+    if center:
+        # the seurat SCT is `float32`
+        rm = np.mat(mat.mean(1), dtype=np.float32).T
+    if center:
+        mat = mat - rm
+    if scale_max != np.Inf:
+        mat[mat > scale_max] = scale_max
+    return mat
+
+
+@numba.jit(cache=True, forceobj=True)
+def fast_row_scale_sparse(mat, center=True, scale=True, scale_max=10):
+    # TODO: ignore `scale`
+    rm = None
+    if center:
+        # TODO: `float32` the seurat SCT result
+        rm = np.mat(mat.mean(1), dtype=np.float32)
+    if center:
+        mat = mat - rm
+    if scale_max != np.Inf:
+        mat[mat > scale_max] = scale_max
+    return mat

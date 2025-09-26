@@ -2,8 +2,7 @@ import os
 import random
 import numpy as np
 import anndata
-# from SpaDOT.utils import _preprocess_utils
-from utils import _preprocess_utils # for debugging
+from .utils import _preprocess_utils # for debugging
 
 seed=1993
 random.seed(seed)

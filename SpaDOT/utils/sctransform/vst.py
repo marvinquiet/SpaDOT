@@ -9,21 +9,9 @@ from joblib import Parallel, delayed
 from patsy.highlevel import dmatrix
 from scipy.sparse import csr_matrix
 
-# from .bw import bwSJ
-# from .ksmooth import ksmooth
-# from .utils import (
-#     make_cell_attr,
-#     cpu_count,
-#     dds,
-#     multi_pearson_residual,
-#     is_outlier,
-#     fit_poisson,
-#     row_gmean_sparse
-# )
-
-from bw import bwSJ
-from ksmooth import ksmooth
-from utils import (
+from .bw import bwSJ
+from .ksmooth import ksmooth
+from .utils import (
     make_cell_attr,
     cpu_count,
     dds,
@@ -32,6 +20,7 @@ from utils import (
     fit_poisson,
     row_gmean_sparse
 )
+
 
 
 def vst(

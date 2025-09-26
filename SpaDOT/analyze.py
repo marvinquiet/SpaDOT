@@ -1,7 +1,6 @@
 import os
 import anndata
-# from SpaDOT.utils import _analyze_utils
-from utils import _analyze_utils # for debugging
+from .utils import _analyze_utils # for debugging
 
 def analyze(args):
     data_dir = os.path.abspath(args.data)

@@ -22,9 +22,9 @@ from collections import OrderedDict
 # from SpaDOT.utils import _utils
 # from SpaDOT.model import SpaDOT
 # --- for debugging
-from utils import _utils
-from utils.OT_loss.ot_solvers import compute_transport_map # Waddington, faster C version
-from model import SpaDOT
+from . import _utils
+from .OT_loss.ot_solvers import compute_transport_map # Waddington, faster C version
+from ..model import SpaDOT
 
 class MyDataset(Dataset):
     def __init__(self, pos, counts, tp_ix, dtype=torch.float64):
