@@ -1,4 +1,7 @@
 import os, sys, argparse
+import warnings
+warnings.simplefilter(action="ignore", category=FutureWarning)
+warnings.simplefilter(action="ignore", category=UserWarning)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="SpaDOT: Optimal transport modeling uncovers spatial domain dynamics in spatiotemporal transcriptomics.",
@@ -21,7 +24,7 @@ def parse_args():
     preprocess_parser.add_argument('--prefix', dest='prefix',
             type=str, default='preprocessed_', help="Prefix for preprocessed data. Default: preprocessed_")
     preprocess_parser.add_argument('--feature_selection', dest='feature_selection',
-            default=True, action="store_false",
+            default=True, action="store_true",
             help="Whether performing feature selection. If not specified, feature selection option is chosen.")
 
     # ===========================

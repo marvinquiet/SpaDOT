@@ -11,7 +11,7 @@ from scipy.sparse import csr_matrix
 
 from .bw import bwSJ
 from .ksmooth import ksmooth
-from .utils import (
+from .sctransform_utils import (
     make_cell_attr,
     cpu_count,
     dds,
@@ -137,7 +137,8 @@ def vst(
     print(f'get_model_pars finished, cost {time.time() - start_time} seconds')
 
     min_theta = 1e-07
-    model_pars['theta'][model_pars['theta'] < min_theta] = min_theta
+    # model_pars['theta'][model_pars['theta'] < min_theta] = min_theta
+    model_pars.loc[model_pars['theta'] < min_theta]['theta'] = min_theta
     model_pars.set_index(genes_step1, inplace=True)
 
     start_time = time.time()
@@ -344,7 +345,8 @@ def correct(x, genes, as_is=False, do_round=True, do_pos=True, scale_factor=None
     return csr_matrix(corrected_data)
 
 
-@numba.jit(cache=True, forceobj=True, nogil=True)
+# @numba.jit(cache=True, forceobj=True, nogil=True)
+@numba.jit(cache=True, forceobj=True)
 def multi_correct_data(x, genes, bin_ind, data, i, regressor_data):
     genes_bin = genes[bin_ind == i]
     pearson_residual_ = data.loc[genes_bin]
@@ -353,7 +355,8 @@ def multi_correct_data(x, genes, bin_ind, data, i, regressor_data):
     return get_correct_data(coefs, regressor_data, theta, pearson_residual_)
 
 
-@numba.jit(cache=True, forceobj=True, nogil=True)
+# @numba.jit(cache=True, forceobj=True, nogil=True)
+@numba.jit(cache=True, forceobj=True)
 def get_correct_data(coefs, regressor_data, theta, pearson_residual_):
     mu = np.exp(np.dot(coefs, regressor_data.T))
     variance = mu + np.power(mu, 2) / theta.to_numpy().reshape(-1, 1)

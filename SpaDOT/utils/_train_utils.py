@@ -17,14 +17,10 @@ from torch_geometric.loader import NeighborLoader
 from tqdm.auto import tqdm
 from collections import OrderedDict
 
-# --- load my package
-# from SpaDOT.utils.OT_loss.ot_solvers import compute_transport_map # Waddington, faster C version
-# from SpaDOT.utils import _utils
-# from SpaDOT.model import SpaDOT
-# --- for debugging
-from . import _utils
-from .OT_loss.ot_solvers import compute_transport_map # Waddington, faster C version
-from ..model import SpaDOT
+# --- my package
+from SpaDOT.utils import _utils
+from SpaDOT.utils.OT_loss.ot_solvers import compute_transport_map # Waddington, faster C version
+from SpaDOT.model import SpaDOT
 
 class MyDataset(Dataset):
     def __init__(self, pos, counts, tp_ix, dtype=torch.float64):

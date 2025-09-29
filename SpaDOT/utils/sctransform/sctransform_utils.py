@@ -28,7 +28,8 @@ def multi_pearson_residual(i, model_pars_final, regressor_data_final, umi, resid
         raise Exception
 
 
-@numba.jit(cache=True, forceobj=True, nogil=True)
+# @numba.jit(cache=True, forceobj=True, nogil=True)
+@numba.jit(cache=True, forceobj=True)
 def pearson_residual(y, mu, theta, min_var=-np.inf):
     variance = mu + np.divide(mu ** 2, theta.to_numpy().reshape(-1, 1))
     variance[variance < min_var] = min_var
@@ -147,7 +148,7 @@ def qpois_reg(X, Y, tol, maxiters, minphi, returnfit):
     }
 
 
-# @numba.jit(cache=True, forceobj=True, nogil=True)
+@numba.jit(cache=True, forceobj=True, nogil=True)
 def theta_ml(y, mu, limit=10, eps=0.0001220703):
     weights = np.ones(len(y))
     n = np.sum(weights)
@@ -172,12 +173,14 @@ def score(n, th, mu, y, w):
     return np.sum(w * (digamma(a) - digamma(th) + np.log(th) + 1 - np.log(b) - a / b))
 
 
-@numba.jit(cache=True, forceobj=True, nogil=True)
+# @numba.jit(cache=True, forceobj=True, nogil=True)
+@numba.jit(cache=True, forceobj=True)
 def trigamma(x):
     return polygamma(1, x)
 
 
-@numba.jit(cache=True, forceobj=True, nogil=True)
+# @numba.jit(cache=True, forceobj=True, nogil=True)
+@numba.jit(cache=True, forceobj=True)
 def info(n, th, mu, y, w):
     a = th + y
     b = th + mu

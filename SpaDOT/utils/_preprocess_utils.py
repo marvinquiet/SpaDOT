@@ -5,8 +5,8 @@ import scanpy as sc
 import numpy as np
 import pandas as pd
 
-from . import _utils
-from .sctransform import SCTransform
+from SpaDOT.utils import _utils
+from SpaDOT.utils.sctransform import SCTransform
 
 def preprocess_adata(args, adata):
     '''
@@ -93,12 +93,12 @@ def _run_sparkx(args, adata, tps, option='mixture', num_cores=4):
                             n_cells=None,
                             variable_features_n=None,
                             variable_features_rv_th=1.3)
-        tp_adata = tp_adata[:, assay_out['scale.data'].index]
+        tp_adata = tp_adata[:, assay_out['scale.data'].index].copy()
         print(f'Timepoint: {tp}, Number of cells: {tp_adata.n_obs}, Number of genes: {tp_adata.n_vars}')
         count_spark = tp_adata.layers['counts']
         locations_spark = tp_adata.obsm['spatial']
         SVGs = _utils._sparkx(count_spark, locations_spark, np.array(tp_adata.var_names), option=option, num_cores=num_cores)
-        SVGs.to_csv(args.output_dir+os.sep+str(tp)+'_SVG_sparkx.csv')
+        # SVGs.to_csv(args.output_dir+os.sep+str(tp)+'_SVG_sparkx.csv')
         SVG_clusters = _utils._cluster_SVGs(assay_out['scale.data'].loc[SVGs.index, :], k=10)
         SVGs['cluster'] = SVG_clusters
         SVGs.to_csv(args.output_dir+os.sep+str(tp)+'_SVG_sparkx_clustered_louvain.csv')

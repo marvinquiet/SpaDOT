@@ -200,19 +200,19 @@ def _cluster_SVGs(SVG_mat, k=10):
     sc.tl.pca(SVG_adata)
     sc.pp.neighbors(SVG_adata, n_neighbors=100, n_pcs=30)
     resolution = 1.0
-    sc.tl.louvain(SVG_adata, 
+    sc.tl.leiden(SVG_adata, 
                  resolution=resolution, 
-                 key_added=f"louvain_{resolution}",
+                 key_added=f"leiden_{resolution}",
                  use_weights=True)
-    while len(set(SVG_adata.obs[f"louvain_{resolution}"])) < k:
+    while len(set(SVG_adata.obs[f"leiden_{resolution}"])) < k:
         resolution += 0.1
-        sc.tl.louvain(SVG_adata, 
+        sc.tl.leiden(SVG_adata, 
                     resolution=resolution, 
-                    key_added=f"louvain_{resolution}",
+                    key_added=f"leiden_{resolution}",
                     use_weights=True)
     end_time = time.time()
     print(f"Time taken for clustering SVGs: {end_time - start_time:.2f} seconds")
-    return SVG_adata.obs[f"louvain_{resolution}"].values
+    return SVG_adata.obs[f"leiden_{resolution}"].values
 
 def _sparkx_sk(counts, infomat, num_cores=1):
     """Simplified SPARK-X without covariate matrix

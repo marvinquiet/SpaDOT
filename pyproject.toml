@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools<81.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "SpaDOT"
+version = "1.0.1"
+description = "Package for paper: Optimal transport modeling uncovers spatial domain dynamics in spatiotemporal transcriptomics"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Wenjing Ma", email = "mawenjing1993@gmail.com" }
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+dependencies = [
+    "torch==2.5.0",
+    "torchvision",
+    "torchaudio",
+    "anndata==0.9.1",
+    "scanpy==1.9.8",
+    "numpy<2.0.0",
+    "chi2comb==0.1.0",
+    "KDEpy==1.1.12",
+    "wot",
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "matplotlib",
+    "seaborn",
+    "tqdm",
+    "pyyaml",
+    "louvain",
+]
+
+[project.urls]
+homepage = "https://marvinquiet.github.io/SpaDOT"
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "ruff"]
+
+[project.scripts]
+SpaDOT = "SpaDOT.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["SpaDOT*"]
+
+[tool.setuptools.package-data]
+"SpaDOT.utils.OT_loss" = ["libot.so"]
+"SpaDOT" = ["config.yaml"]
