@@ -5,10 +5,10 @@ __pycache__/
 *.h5ad
 # model parameters
 *.pth 
-# examples folder
-*examples*/
 # test folder
 *test*/
+# archived folder
+archived/
 
 # C extensions
 #*.so

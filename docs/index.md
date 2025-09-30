@@ -9,12 +9,13 @@ Siyu Hou, Department of Biostatistics, University of Michigan
 
 **Maintainer:** [Wenjing Ma](https://marvinquiet.github.io/) (wenjinma@umich.edu)
 
-**Latest revision:** 05/03/2025
+**Latest revision:** 09/30/2025
 
 # Table of Contents
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Example 1: developing chicken heart](#example-1-developing-chicken-heart)
+<!-- - [Example 2: developing chicken heart](#example-1-developing-chicken-heart) -->
 - [Conclusion](#conclusion)
 
 # Introduction
@@ -32,7 +33,7 @@ In this tutorial, we provide detailed instructions for SpaDOT by utilizing two r
 
 # Installation
 
-**Step 1**: SpaDOT is developed as a Python package. You will have to install Python, and the recommended version is **Python 3.9**. SpaDOT also incorporates an R package [SPARK-X](https://github.com/xzhoulab/SPARK) to perform feature selection as an option. Having the spatial variable genes selected is a practice that we test can generate better results. Therefore, installiation of R and SPARK-X is recommended.
+**Step 1**: SpaDOT is distributed as a Python package. To get started, please make sure you have Python installed (we recommend Python version >= 3.9). For feature selection, SpaDOT provides a Python implementation of [SPARK-X](https://github.com/xzhoulab/SPARK), which we strongly recommend using. Selecting spatially variable genes with SPARK-X has been consistently shown to improve results.
 
 **Step 2**: Use the following command to install SpaDOT:
 
@@ -103,7 +104,9 @@ optional arguments:
 ```
 
 
-**Step 4 (Optional):** If you would like to use SpaDOT with-in program, you can do the following and pass the correct arguments into corresponding functions.
+**Step 4 (Optional):** If you prefer using SpaDOT with-in program, you can follow the rendered Jupyter book version [here](). 
+
+do the following and pass the correct arguments into corresponding functions.
 
 ```
 import SpaDOT
