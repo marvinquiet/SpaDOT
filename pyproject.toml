@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools<81.0", "wheel"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -36,7 +36,7 @@ dependencies = [
     "seaborn",
     "tqdm",
     "pyyaml",
-    "louvain",
+    "louvain"
 ]
 
 [project.urls]
