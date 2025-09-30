@@ -135,7 +135,7 @@ def OT_analysis(args, adata):
         prev_day_populations = tmap_model.population_from_cell_sets(latent_cell_sets, at_time=prev_day)
         next_day_populations = tmap_model.population_from_cell_sets(latent_cell_sets, at_time=next_day)
         transition_table = tmap_model.transition_table(prev_day_populations, next_day_populations) # aggregated OT matrix
-        transition_table.write_h5ad(args.output_dir+os.sep+'transition_table_'+str(prev_day)+'_'+str(next_day)+'.h5ad')
+        transition_table.write_h5ad(args.output_dir+os.sep+args.prefix+'transition_table_'+str(prev_day)+'_'+str(next_day)+'.h5ad')
 
 def plot_domains(args, adata):
     """
@@ -205,5 +205,5 @@ def plot_OT(args, adata):
         plt.title('Transition Probability Dotplot')
         plt.colorbar(plt.cm.ScalarMappable(cmap='Reds'), label='Transition Probability', ax=plt.gca())
         plt.tight_layout()
-        plt.savefig(args.output_dir+os.sep+f'transition_dotplot_{prev_day}_{next_day}.png')
+        plt.savefig(args.output_dir+os.sep+args.prefix+f'transition_dotplot_{prev_day}_{next_day}.png')
         plt.close()

@@ -104,52 +104,16 @@ optional arguments:
 ```
 
 
-**Step 4 (Optional):** If you prefer using SpaDOT with-in program, you can follow the rendered Jupyter book version [here](). 
-
-do the following and pass the correct arguments into corresponding functions.
-
-```
-import SpaDOT
-
-data_dir = "./examples"
-# create arguments for preprocessing
-class Args:
-    data = os.path.join(data_dir, "ChickenHeart.h5ad")
-    prefix = "preprocessed_"
-    feature_selection = True
-args = Args()
-# create output directory if not exists
-if 'output_dir' not in args.__dict__:
-    args.output_dir = os.path.dirname(args.data)
-if not os.path.exists(args.output_dir):
-    os.makedirs(args.output_dir)
-SpaDOT.preprocess(args)
-
-# create arguments for training
-class Args:
-    data = os.path.join(data_dir, "preprocessed_ChickenHeart.h5ad")
-    prefix = ""
-    config = None
-    save_model = True
-args = Args()
-SpaDOT.train(args) 
-
-# create arguments for analyses
-class Args:
-    data = os.path.join(data_dir, "latent.h5ad")
-    prefix = ""
-    n_clusters = [5, 7, 7, 6]
-args = Args()
-SpaDOT.analyze(args)
-```
+**Step 4 (Optional):** If you prefer using SpaDOT with-in program, you can follow the rendered Jupyter notebooks [here](https://github.com/marvinquiet/SpaDOT/blob/main/examples/). 
 
 ---
 
 # Example 1: developing chicken heart
 
-The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. In this dataset, SpaDOT accurately identifies valvulogenesis - a valve splits into artrioventricular valve and semilunar valve at Day 14.
+The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. In this dataset, SpaDOT accurately identifies valvulogenesis - a valve splits into artrioventricular valve and semilunar valve at Day 14. For your convenience, you can download the processed data [here](https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0). If you would like to see the preprocessing steps, please expand the section below:
 
-**Step 1: obtain example data**
+<details>
+<summary>Click to expand</summary>
 
 First, we downloaded the spatial transcritpomics data from [GSE149457](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457) and selected 
 ```
@@ -172,65 +136,70 @@ Third, we used the script `process_ChickenHeart.py` provided [here](https://gith
 
 After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHeart.h5ad`. For your convenience, you can download the processed data [here](https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0).
 
-**Step 2: perform data preprocessing**
+</details>
 
-After obtaining `ChickenHeart.h5ad`, we the perform the data preprocessing. Here, we use command line as demonstration.
+**Step 1: Perform data preprocessing and feature selection**
 
-```
-Rscript run_SPARKX.R --data ./ChickenHeart.h5ad
-SpaDOT preprocess --data ./ChickenHeart.h5ad
-```
-`run_SPARKX.R` can be found [here](https://github.com/marvinquiet/SpaDOT/blob/main/SpaDOT/Rcode/run_SPARKX.R).
-
-
-If spatially variable genes selection is not desired, you can add an additional option `--feature_selection False`, which would use all genes from the data. However, **we again recommend having feature selection to generate better results**.
+After obtaining `ChickenHeart.h5ad`, we perform the data preprocessing. Here, we use command line as demonstration.
 
 ```
-SpaDOT preprocess --data ./ChickenHeart.h5ad --feature_selection False
+mkdir ./ChickenHeart_output
+SpaDOT preprocess --data ./ChickenHeart.h5ad --output_dir ./ChickenHeart_output
 ```
+
+<details>
+<summary>Click to expand</summary>
+
+If you prefer not to perform spatially variable gene selection, you can add the option `--feature_selection False` to use all genes in the dataset. However, we still **recommend performing feature selection, as it generally leads to better results and faster computation**.
+
+```
+SpaDOT preprocess --data ChickenHeart.h5ad --feature_selection False --output_dir ChickenHeart_output
+```
+</details>
 
 After data preprocessing, we will have `processed_ChickenHeart.h5ad` in the directory.
 
-**Step 3: train SpaDOT to obtain latent representations**
+**Step 2: Train SpaDOT to obtain latent representations**
 
 Then, we can train the SpaDOT model to obtain latent representations by using 
 
 ```
-SpaDOT train --data preprocessed_ChickenHeart.h5ad
+SpaDOT train --data ChickenHeart_output/preprocessed_ChickenHeart.h5ad
 ```
 
-Here, we train with default parameters. For overriding default parameters purpose, a `yaml` file is needed. We have provided an example [config.yaml](https://github.com/marvinquiet/SpaDOT/blob/main/SpaDOT/config.yaml) with our default parameters for your reference. **Again, we do recommend using our default parameters to achieve the best performance.**
+Here, we train with default parameters. For overriding default parameters purpose, a `yaml` file is needed. We have provided an example [config.yaml](https://github.com/marvinquiet/SpaDOT/blob/main/SpaDOT/config.yaml) with our default parameters for your reference. **Again, we do recommend using our default parameters to achieve the best performance,** but if you wish to tune them, you can do so with:
 
 ```
-SpaDOT train --data preprocessed_ChickenHeart.h5ad --config config.yaml
+SpaDOT train --data ChickenHeart_output/preprocessed_ChickenHeart.h5ad --config config.yaml
 ```
+The default device is `cuda:0`. You can switch to CPU by setting the `--device` option to `cpu`. However, we **recommend training on a GPU, which typically takes around 5 minutes. Training on a CPU is also possible but will take significantly longer.**
 
-**Step 4: infer spatial domains and domain dynamics based on region number**
+**Step 3: Infer spatial domains and domain dynamics**
 
 Once the training stage finishes, we can obtain spatial domains and generate domain dynamics. If we have prior knowledge on how many domains we might have (given by the original study), we can run:
 
 ```
-SpaDOT analyze --data latent.h5ad --n_clusters 5,7,7,6
+SpaDOT analyze --data ChickenHeart_output/latent.h5ad --n_clusters 5,7,7,6
 ```
 
 #### Output spatial domains
 
 | Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
 |-----------|-------|-------|--------|--------|
-| Spatial Domains | ![Day 4](0_domains.png) | ![Day 7](1_domains.png) | ![Day 10](2_domains.png) | ![Day 14](3_domains.png) | 
+| Spatial Domains | ![Day 4](../examples/ChickenHeart_output/0_domains.png) | ![Day 7](../examples/ChickenHeart_output/1_domains.png) | ![Day 10](../examples/ChickenHeart_output/2_domains.png) | ![Day 14](../examples/ChickenHeart_output/3_domains.png) | 
 
 #### Output OT analysis
 
 | Timepoint | Day 4 --> Day 7 | Day 7 --> Day 10 | Day 10 --> Day 14 | 
 |-----------|-----------------|------------------|-------------------|
-| OT transition | ![Day 4to7](transition_dotplot_0_1.png) | ![Day 7to10](transition_dotplot_1_2.png) |  ![Day 10to14](transition_dotplot_2_3.png) |
+| OT transition | ![Day 4to7](../examples/ChickenHeart_output/transition_dotplot_0_1.png) | ![Day 7to10](../examples/ChickenHeart_output/transition_dotplot_1_2.png) |  ![Day 10to14](../examples/ChickenHeart_output/transition_dotplot_2_3.png) |
 
 **Step 5: infer spatial domains and domain dynamics based on Elbow method (Optional)**
 
 Or, we can leave out the `--n_clusters` option, then SpaDOT would automatically run Elbow method to determine the number of clusters
 
 ```
-SpaDOT analyze --data latent.h5ad
+SpaDOT analyze --data latent.h5ad --prefix adaptive_
 ```
 
 We then have the plot of calculating the within-cluster sum of squares (WSS) of KMeans with the number of clusters ranging from 5 to 20. We then  detect the Elbow point and select the corresponding cluster number.
@@ -240,14 +209,14 @@ We then have the plot of calculating the within-cluster sum of squares (WSS) of 
 
 | Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
 |-----------|-------|-------|--------|--------|
-| WSS per cluster | ![Day 4](0_WSS_vs_Clusters.png) | ![Day 7](1_WSS_vs_Clusters.png) | ![Day 10](2_WSS_vs_Clusters.png) | ![Day 14](0_WSS_vs_Clusters.png) | 
-| Spatial Domains | ![Day 4](0_domains_adaptive.png) | ![Day 7](1_domains_adaptive.png) | ![Day 10](2_domains_adaptive.png) | ![Day 14](3_domains_adaptive.png) | 
+| WSS per cluster | ![Day 4](../examples/ChickenHeart_output/adaptive_0_WSS_vs_Clusters.png) | ![Day 7](../examples/ChickenHeart_output/adaptive_1_WSS_vs_Clusters.png) | ![Day 10](../examples/ChickenHeart_output/adaptive_2_WSS_vs_Clusters.png) | ![Day 14](../examples/ChickenHeart_output/adaptive_3_WSS_vs_Clusters.png) | 
+| Spatial Domains | ![Day 4](../examples/ChickenHeart_output/adaptive_0_domains.png) | ![Day 7](../examples/ChickenHeart_output/adaptive_1_domains.png) | ![Day 10](../examples/ChickenHeart_output/adaptive_2_domains.png) | ![Day 14](../examples/ChickenHeart_output/adaptive_3_domains.png) | 
 
 ### Output OT analysis
 
 | Timepoint | Day 4 --> Day 7 | Day 7 --> Day 10 | Day 10 --> Day 14 | 
 |-----------|-----------------|------------------|-------------------|
-| OT transition | ![Day 4to7](transition_dotplot_0_1_adaptive.png) | ![Day 7to10](transition_dotplot_1_2_adaptive.png) |  ![Day 10to14](transition_dotplot_2_3_adaptive.png) |
+| OT transition | ![Day 4to7](../examples/ChickenHeart_output/adaptive_transition_dotplot_0_1.png) | ![Day 7to10](../examples/ChickenHeart_output/adaptive_transition_dotplot_1_2.png) |  ![Day 10to14](../examples/ChickenHeart_output/adaptive_transition_dotplot_2_3.png) |
 
 
 # Conclusion
