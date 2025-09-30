@@ -116,7 +116,8 @@ The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is me
 <summary>Click to expand</summary>
 
 First, we downloaded the spatial transcritpomics data from [GSE149457](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457) and selected 
-```
+
+```Python
 GSM4502482_chicken_heart_spatial_RNAseq_D4_filtered_feature_bc_matrix.h5
 GSM4502483_chicken_heart_spatial_RNAseq_D7_filtered_feature_bc_matrix.h5
 GSM4502484_chicken_heart_spatial_RNAseq_D10_filtered_feature_bc_matrix.h5
@@ -125,7 +126,7 @@ GSM4502485_chicken_heart_spatial_RNAseq_D14_filtered_feature_bc_matrix.h5
 
 Second, we downloaded spatial coordinates from the analysis code shared by the paper on [Github](https://github.com/madhavmantri/chicken_heart/tree/master/data/chicken_heart_spatial_RNAseq_processed):
 
-```
+```Python
 chicken_heart_spatial_RNAseq_D4_tissue_positions_list.csv
 chicken_heart_spatial_RNAseq_D7_tissue_positions_list.csv
 chicken_heart_spatial_RNAseq_D10_tissue_positions_list.csv
@@ -152,7 +153,7 @@ SpaDOT preprocess --data ./ChickenHeart.h5ad --output_dir ./ChickenHeart_output
 If you prefer not to perform spatially variable gene selection, you can add the option `--feature_selection False` to use all genes in the dataset. However, we still **recommend performing feature selection, as it generally leads to better results and faster computation**.
 
 ```
-SpaDOT preprocess --data ChickenHeart.h5ad --feature_selection False --output_dir ./ChickenHeart_output
+SpaDOT preprocess --data ./ChickenHeart.h5ad --feature_selection False --output_dir ./ChickenHeart_output
 ```
 </details>
 
@@ -231,4 +232,3 @@ SpaDOT provides efficient and accurate spatial domain detection for spatiotempor
 We hope that SpaDOT will be a useful tool for your research. For questions or comments, please open an issue on [Github](https://github.com/marvinquiet/SpaDOT/issues).
 
 <!--**Citation**-->
-
