@@ -180,7 +180,7 @@ def plot_OT(args, adata):
     for tp_i in range(len(days)-1):
         prev_day = days[tp_i]
         next_day = days[tp_i+1]
-        transition_table = anndata.read_h5ad(args.output_dir+os.sep+'transition_table_'+str(prev_day)+'_'+str(next_day)+'.h5ad')
+        transition_table = anndata.read_h5ad(args.output_dir+os.sep+args.prefix+'transition_table_'+str(prev_day)+'_'+str(next_day)+'.h5ad')
         # --- normalize by column sum
         transition_prob = transition_table.X
         transition_prob = transition_prob/transition_prob.sum(axis=0, keepdims=True)

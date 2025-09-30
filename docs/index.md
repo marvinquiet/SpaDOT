@@ -143,7 +143,6 @@ After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHea
 After obtaining `ChickenHeart.h5ad`, we perform the data preprocessing. Here, we use command line as demonstration.
 
 ```
-mkdir ./ChickenHeart_output
 SpaDOT preprocess --data ./ChickenHeart.h5ad --output_dir ./ChickenHeart_output
 ```
 
@@ -153,7 +152,7 @@ SpaDOT preprocess --data ./ChickenHeart.h5ad --output_dir ./ChickenHeart_output
 If you prefer not to perform spatially variable gene selection, you can add the option `--feature_selection False` to use all genes in the dataset. However, we still **recommend performing feature selection, as it generally leads to better results and faster computation**.
 
 ```
-SpaDOT preprocess --data ChickenHeart.h5ad --feature_selection False --output_dir ChickenHeart_output
+SpaDOT preprocess --data ChickenHeart.h5ad --feature_selection False --output_dir ./ChickenHeart_output
 ```
 </details>
 

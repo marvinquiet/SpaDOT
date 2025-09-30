@@ -6,6 +6,11 @@ def analyze(args):
     data_dir = os.path.abspath(args.data)
     if not args.output_dir:
         args.output_dir = os.path.dirname(data_dir)
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    if args.n_clusters is None and args.prefix == "":
+        args.prefix = 'adaptive_'
+
     latent = anndata.read_h5ad(data_dir)
     if args.n_clusters is None:
         latent = _analyze_utils.Adaptive_clustering(args, latent)

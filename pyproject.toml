@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SpaDOT"
-version = "1.0.2"
+version = "1.0.3"
 description = "Package for paper: Optimal transport modeling uncovers spatial domain dynamics in spatiotemporal transcriptomics"
 readme = "README.md"
 requires-python = ">=3.9"
