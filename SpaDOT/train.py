@@ -19,7 +19,7 @@ def train(args):
     model_config = _utils.load_model_config(args)
     # add adata related parameters to model_config
     model_config['input_dim'] = adata.n_vars
-    tps = adata.obs['timepoint'].unique()
+    tps = list(adata.obs['timepoint'].unique()) # need to be list
     tps.sort()
     model_config['timepoints'] = tps
     # add device and dtype to model_config
