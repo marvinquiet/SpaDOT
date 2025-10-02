@@ -137,10 +137,10 @@ The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is me
 </ul>
 
 
-<p>Third, we used the script `process_ChickenHeart.py` provided <a href="https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py">here</a> to preprocess the data by integrating them into one anndata with `timepoint` in anndata observations (obs) as one-hot encoder indicating four time points, `0`, `1`, `2` and `3` indicate Day 4, Day 7, Day 10 and Day 14, respectively. We have also put the spatial coordinates with keyword `spatial` as a numpy array inside anndata observation metadata (obsm).</p>
+<p>Third, we used the script <code>process_ChickenHeart.py</code> provided <a href="https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py">here</a> to preprocess the data by integrating them into one anndata with <code>timepoint</code> in anndata observations (obs) as one-hot encoder indicating four time points: 0, 1, 2 and 3 indicate Day 4, Day 7, Day 10 and Day 14, respectively. We have also put the spatial coordinates with keyword <code>spatial</code> as a numpy array inside anndata observation metadata (obsm).</p>
 
 
-<p>After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHeart.h5ad`. For your convenience, you can download the processed data <a href="https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0">here</a>. </p>
+<p>After running the <code>process_ChickenHeart.py</code>, we will obtain the file <code>ChickenHeart.h5ad</code>. For your convenience, you can download the processed data <a href="https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0">here</a>. </p>
 
 </details>
 
@@ -153,9 +153,10 @@ SpaDOT preprocess --data ./ChickenHeart.h5ad --output_dir ./ChickenHeart_output
 ```
 
 <details>
-<summary>Click to expand</summary>
 
-<p>If you prefer not to perform spatially variable gene selection, you can add the option `--feature_selection False` to use all genes in the dataset. However, we still **recommend performing feature selection, as it generally leads to better results and faster computation**.</p>
+<summary>More about no feature selection</summary>
+
+<p>If you prefer not to perform spatially variable gene selection, you can add the option <code>--feature_selection False</code> to use all genes in the dataset. However, we still <strong>recommend performing feature selection, as it generally leads to better results and faster computation</strong>.</p>
 
 <code>
 SpaDOT preprocess --data ./ChickenHeart.h5ad --feature_selection False --output_dir ./ChickenHeart_output
@@ -193,7 +194,7 @@ SpaDOT analyze --data ChickenHeart_output/latent.h5ad --n_clusters 5,7,7,6
 
 | Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
 |-----------|-------|-------|--------|--------|
-| Spatial Domains | ![Day 4](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/0_domains.png) | ![Day 7](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/1_domains.png) | ![Day 10](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/2_domains.png) | ![Day 14](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/3_domains.png) | 
+| Spatial Domains | ![Day 4](../examples/ChickenHeart_output/0_domains.png) | ![Day 7](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/1_domains.png) | ![Day 10](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/2_domains.png) | ![Day 14](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/3_domains.png) | 
 
 #### Output OT analysis
 
