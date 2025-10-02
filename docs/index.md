@@ -194,7 +194,7 @@ SpaDOT analyze --data ChickenHeart_output/latent.h5ad --n_clusters 5,7,7,6
 
 | Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
 |-----------|-------|-------|--------|--------|
-| Spatial Domains | ![Day 4](../examples/ChickenHeart_output/0_domains.png) | ![Day 7](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/1_domains.png) | ![Day 10](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/2_domains.png) | ![Day 14](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/3_domains.png) | 
+| Spatial Domains | <img src="https://github.com/marvinquiet/SpaDOT/blob/f9ccd3fdef4767adc7d5e7fb357585eb485da27e/examples/ChickenHeart_output/0_domains.png" alt="img"> |![Day 7](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/1_domains.png) | ![Day 10](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/2_domains.png) | ![Day 14](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/3_domains.png) | 
 
 #### Output OT analysis
 
