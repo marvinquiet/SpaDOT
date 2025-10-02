@@ -45,7 +45,7 @@ def train(args):
 
 if __name__ == "__main__":
     # data_dir = "./examples"
-    data_dir = "/net/mulan/home/wenjinma/projects/SpaDOT/examples_Python_version"
+    data_dir = "/net/mulan/home/wenjinma/projects/SpaDOT/examples"
     # create arguments for testing
     class Args:
         data = os.path.join(data_dir, "preprocessed_ChickenHeart.h5ad")
