@@ -194,13 +194,13 @@ SpaDOT analyze --data ChickenHeart_output/latent.h5ad --n_clusters 5,7,7,6
 
 | Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
 |-----------|-------|-------|--------|--------|
-| Spatial Domains | ![Day 4](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/0_domains.png) |![Day 7](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/1_domains.png) | ![Day 10](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/2_domains.png) | ![Day 14](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/3_domains.png) | 
+| Spatial Domains | ![Day 4](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/0_domains.png) |![Day 7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/1_domains.png) | ![Day 10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/2_domains.png) | ![Day 14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/3_domains.png) | 
 
 #### Output OT analysis
 
 | Timepoint | Day 4 --> Day 7 | Day 7 --> Day 10 | Day 10 --> Day 14 | 
 |-----------|-----------------|------------------|-------------------|
-| OT transition | ![Day 4to7](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/transition_dotplot_0_1.png) | ![Day 7to10](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/transition_dotplot_1_2.png) |  ![Day 10to14](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/transition_dotplot_2_3.png) |
+| OT transition | ![Day 4to7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/transition_dotplot_0_1.png) | ![Day 7to10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/transition_dotplot_1_2.png) |  ![Day 10to14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/transition_dotplot_2_3.png) |
 
 **Step 5: infer spatial domains and domain dynamics based on Elbow method (Optional)**
 
@@ -217,14 +217,14 @@ We then have the plot of calculating the within-cluster sum of squares (WSS) of 
 
 | Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
 |-----------|-------|-------|--------|--------|
-| WSS per cluster | ![Day 4](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_0_WSS_vs_Clusters.png) | ![Day 7](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_1_WSS_vs_Clusters.png) | ![Day 10](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_2_WSS_vs_Clusters.png) | ![Day 14](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_3_WSS_vs_Clusters.png) | 
-| Spatial Domains | ![Day 4](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_0_domains.png) | ![Day 7](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_1_domains.png) | ![Day 10](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_2_domains.png) | ![Day 14](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_3_domains.png) | 
+| WSS per cluster | ![Day 4](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_0_WSS_vs_Clusters.png) | ![Day 7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_1_WSS_vs_Clusters.png) | ![Day 10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_2_WSS_vs_Clusters.png) | ![Day 14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_3_WSS_vs_Clusters.png) | 
+| Spatial Domains | ![Day 4](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_0_domains.png) | ![Day 7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_1_domains.png) | ![Day 10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_2_domains.png) | ![Day 14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_3_domains.png) | 
 
 ### Output OT analysis
 
 | Timepoint | Day 4 --> Day 7 | Day 7 --> Day 10 | Day 10 --> Day 14 | 
 |-----------|-----------------|------------------|-------------------|
-| OT transition | ![Day 4to7](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_transition_dotplot_0_1.png) | ![Day 7to10](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_transition_dotplot_1_2.png) |  ![Day 10to14](https://github.com/marvinquiet/SpaDOT/blob/cd089fb7277056e77c239b198f9397a59579f24d/examples/ChickenHeart_output/adaptive_transition_dotplot_2_3.png) |
+| OT transition | ![Day 4to7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_transition_dotplot_0_1.png) | ![Day 7to10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_transition_dotplot_1_2.png) |  ![Day 10to14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_transition_dotplot_2_3.png) |
 
 
 # Conclusion
