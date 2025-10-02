@@ -115,15 +115,15 @@ The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is me
 <details>
 <summary>More details on Chicken Heart data</summary>
 
-<p>First, we downloaded the spatial transcritpomics data from [GSE149457](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457) and selected  </p>
+<p>First, we downloaded the spatial transcritpomics data from <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457">GSE149457</a> and selected </p>
 
 
-<p>
-GSM4502482_chicken_heart_spatial_RNAseq_D4_filtered_feature_bc_matrix.h5
-GSM4502483_chicken_heart_spatial_RNAseq_D7_filtered_feature_bc_matrix.h5
-GSM4502484_chicken_heart_spatial_RNAseq_D10_filtered_feature_bc_matrix.h5
-GSM4502485_chicken_heart_spatial_RNAseq_D14_filtered_feature_bc_matrix.h5
-</p>
+<ul>
+  <li>GSM4502482_chicken_heart_spatial_RNAseq_D4_filtered_feature_bc_matrix.h5</li>
+  <li>GSM4502483_chicken_heart_spatial_RNAseq_D7_filtered_feature_bc_matrix.h5</li>
+  <li>GSM4502484_chicken_heart_spatial_RNAseq_D10_filtered_feature_bc_matrix.h5</li>
+  <li>GSM4502485_chicken_heart_spatial_RNAseq_D14_filtered_feature_bc_matrix.h5</li>
+</ul>
 
 
 <p>Second, we downloaded spatial coordinates from the analysis code shared by the paper on <a href="https://github.com/madhavmantri/chicken_heart/tree/master/data/chicken_heart_spatial_RNAseq_processed">Github</a>:</p>
@@ -140,7 +140,7 @@ GSM4502485_chicken_heart_spatial_RNAseq_D14_filtered_feature_bc_matrix.h5
 <p>Third, we used the script `process_ChickenHeart.py` provided <a href="https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py">here</a> to preprocess the data by integrating them into one anndata with `timepoint` in anndata observations (obs) as one-hot encoder indicating four time points, `0`, `1`, `2` and `3` indicate Day 4, Day 7, Day 10 and Day 14, respectively. We have also put the spatial coordinates with keyword `spatial` as a numpy array inside anndata observation metadata (obsm).</p>
 
 
-<p>After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHeart.h5ad`. For your convenience, you can download the processed data <a href="https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0">here</a>.
+<p>After running the `process_ChickenHeart.py`, we will obtain the file `ChickenHeart.h5ad`. For your convenience, you can download the processed data <a href="https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0">here</a>. </p>
 
 </details>
 
