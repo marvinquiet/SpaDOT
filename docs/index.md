@@ -11,6 +11,8 @@ Siyu Hou, Department of Biostatistics, University of Michigan
 
 **Latest revision:** 09/30/2025
 
+**Notice:** This version is currently under development. The final release will be made available upon paper acceptance.
+
 # Table of Contents
 - [Introduction](#introduction)
 - [Installation](#installation)
