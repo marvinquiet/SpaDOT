@@ -110,7 +110,7 @@ optional arguments:
 
 # Example 1: developing chicken heart
 
-The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. In this dataset, SpaDOT accurately identifies valvulogenesis - a valve splits into artrioventricular valve and semilunar valve at Day 14. For your convenience, you can download the processed data [here](https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0). If you would like to see the preprocessing steps, please expand the section below:
+The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. In this dataset, SpaDOT accurately identifies valvulogenesis - a valve splits into artrioventricular valve and semilunar valve at Day 14. For your convenience, you can download the processed data [here](https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&st=t4712tqn&dl=0). If you would like to see the preprocessing steps, please expand the section below:
 
 <details>
 <summary>More details on Chicken Heart data</summary>
