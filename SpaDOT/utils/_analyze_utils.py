@@ -7,7 +7,7 @@ import wot # Waddington OT, original package
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def KMeans_Clustering(adata, n_clusters):
+def KMeans_Clustering(adata, n_clusters, seed=2026, n_init=10):
     """
     Perform KMeans clustering on the spatial data.
     
@@ -29,9 +29,9 @@ def KMeans_Clustering(adata, n_clusters):
     for i, tp in enumerate(tps):
         # perform KMeans clustering
         tp_adata = adata[adata.obs['timepoint'] == tp].copy()
-        tp_kmeans = KMeans(n_clusters=n_clusters[i], 
-                           random_state=1993, 
-                           n_init=10).fit(tp_adata.X)
+        tp_kmeans = KMeans(n_clusters=n_clusters[i],
+                           random_state=seed, n_init=n_init,
+                           init='k-means++', algorithm='lloyd').fit(tp_adata.X)
         tp_adata.obs['kmeans'] = tp_kmeans.labels_.astype(str)
         tp_adata_list.append(tp_adata)
     # merge all timepoints
@@ -59,6 +59,8 @@ def Adaptive_clustering(args, adata, min_clusters=4, max_clusters=20, wss_thresh
         A dictionary containing WSS values, differences, and ratios for each number of clusters.
     """
 
+    seed = getattr(args, 'seed', 2026)
+    n_init = getattr(args, 'n_init', 10)
     tps = adata.obs['timepoint'].unique()
     tps.sort()
     tp_adata_list = []
@@ -69,7 +71,8 @@ def Adaptive_clustering(args, adata, min_clusters=4, max_clusters=20, wss_thresh
         wss = []
         # Perform KMeans clustering for each number of clusters
         for k in range(min_clusters, max_clusters + 1):
-            kmeans = KMeans(n_clusters=k, random_state=1993, n_init=10).fit(tp_adata.X)
+            kmeans = KMeans(n_clusters=k, random_state=seed, n_init=n_init,
+                            init='k-means++', algorithm='lloyd').fit(tp_adata.X)
             wss.append(kmeans.inertia_)
         # Calculate wss and ratios
         wss_diff = -np.diff(wss)
@@ -97,8 +100,9 @@ def Adaptive_clustering(args, adata, min_clusters=4, max_clusters=20, wss_thresh
         plt.grid()
         plt.savefig(args.output_dir+os.sep+args.prefix+str(tp)+'_WSS_vs_Clusters.png')
         plt.close()
-        tp_adata.obs['kmeans'] = KMeans(n_clusters=wss_cluster, 
-                                        random_state=1993, n_init=10).fit(tp_adata.X).labels_.astype(str)
+        tp_adata.obs['kmeans'] = KMeans(n_clusters=wss_cluster,
+                                        random_state=seed, n_init=n_init,
+                                        init='k-means++', algorithm='lloyd').fit(tp_adata.X).labels_.astype(str)
         tp_adata_list.append(tp_adata)
     # merge all timepoints
     merged_adata = anndata.concat(tp_adata_list, axis=0)

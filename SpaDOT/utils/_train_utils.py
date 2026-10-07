@@ -152,13 +152,34 @@ def _beta_cycle_linear(n_iter, start=0.0, stop=1, n_cycle=10, ratio=1):
             i += 1
     return L 
 
+
+def _beta_cycle_linear_period(n_iter, period, start=0.0, stop=1, ratio=1):
+    """Use a fixed number of epochs per KL cycle, independent of maxiter.
+
+    Rounding up to complete cycles and taking a prefix preserves the original
+    floating-point schedule. In particular, 100 epochs with period 30 exactly
+    match the first 100 weights of the historical 300-epoch, 10-cycle schedule.
+    """
+    if not isinstance(n_iter, int) or n_iter < 1:
+        raise ValueError("n_iter must be a positive integer")
+    if not isinstance(period, int) or period < 1:
+        raise ValueError("period must be a positive integer")
+    n_cycle = (n_iter + period - 1) // period
+    full_length = n_cycle * period
+    return _beta_cycle_linear(full_length, start=start, stop=stop,
+                              n_cycle=n_cycle, ratio=ratio)[:n_iter]
+
 def train_SpaDOT(dataloader_dict, model_config):
     SpaDOT_model = SpaDOT.SpaDOT(model_config, dataloader_dict).to(model_config['device'])
     print(SpaDOT_model)
     optimizer = optim.AdamW(filter(lambda p: p.requires_grad, SpaDOT_model.parameters()), lr=model_config['lr'])
 
     # --- prepare training
-    beta1s = _beta_cycle_linear(model_config['maxiter'], stop=model_config['beta1'])
+    period = model_config.get('kl_cycle_epochs')
+    beta1s = (_beta_cycle_linear(model_config['maxiter'], stop=model_config['beta1'])
+              if period is None else
+              _beta_cycle_linear_period(model_config['maxiter'], period,
+                                        stop=model_config['beta1']))
     tp_indexed_list = list(enumerate(model_config['timepoints']))
     
     # --- initialize dictionary to store loss

@@ -68,6 +68,10 @@ def parse_args():
     analyze_parser.add_argument('--n_clusters', dest='n_clusters',
                                 type=lambda s: [int(item) for item in s.split(',')],
                                 help="A comma-separated list of integers representing the number of clusters for analysis.")
+    analyze_parser.add_argument('--seed', type=int, default=2026,
+                                help="Final KMeans random seed. Default: 2026.")
+    analyze_parser.add_argument('--n_init', type=int, default=10,
+                                help="Final KMeans initializations. Default: 10.")
     args = parser.parse_args()
     print("User input arguments: ", args)
     return args

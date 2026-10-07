@@ -1,0 +1,55 @@
+# Feature panels for the fixed 100-epoch SpaDOT recipe
+
+The following are the frozen panels used to evaluate the training recipe.
+Counts refer to genes selected **per timepoint**; the input matrix contains
+the sorted union across all timepoints. Gene selection excluded annotation
+labels and marker identities. The choice among panel rules followed repeated
+evaluation against development annotations, so these counts are exploratory
+and require validation on new samples.
+
+| Dataset | Technology | Spots by timepoint | Selected genes by timepoint | Union genes |
+|---|---|---|---|---:|
+| Chicken Heart | 10x Visium | 747 / 1,966 / 1,916 / 1,967 | 500 / 500 / 1,000 / 1,000 | 1,653 |
+| Axolotl Telencephalon | Stereo-seq | 1,477 / 2,929 / 4,410 | 500 / 500 / 1,000 | 1,250 |
+| Mouse Embryo | 10x Visium | 2,397 / 2,312 / 3,546 | 3,000 / 3,000 / 3,000 | 4,638 |
+
+**There is no validated spot-count-only rule shared by all three.** Chicken
+Heart t1 and t2 have similar spot counts but use 500 and 1,000 genes; Mouse
+Embryo uses 3,000 genes at each timepoint. A 3,000-spot cutoff describes the
+chosen Axolotl panel, but it does not predict the Chicken or Mouse choices.
+Use the table as dataset-specific presets, not as a general law.
+
+## Selection and preprocessing
+
+1. Starting with raw counts, remove the previously specified mitochondrial
+   and ribosomal genes. Run R SPARK-X separately at each timepoint and retain
+   FDR-significant candidates.
+2. Form 12 unlabeled pseudoregions per timepoint using eight expression PCs
+   and spatial coordinates with KMeans. Rank candidate genes by balanced
+   one-versus-rest pseudoregion contrasts, protecting the top 100 SPARK-X
+   genes at every timepoint.
+3. Take the per-timepoint quotas above, freeze their sorted union, and select
+   that union from the **raw counts**. For each timepoint independently, run
+   `normalize_total(target_sum=1e-4)`, `log1p`, then `scale`. The same union
+   genes are present in all timepoints. The source input audits independently
+   reconstructed the resulting matrices with maximum absolute difference 0.
+
+The panel selection is a separate, versioned input-preparation procedure.
+The package's general `SpaDOT preprocess` command is not claimed to
+reproduce these three panels.
+
+## Training and readout
+
+Use `maxiter: 100`, `kl_cycle_epochs: 30`, seed 2026, NumPy OT
+(`use_Py: true`, `use_C: false`), and the provided model architecture.
+Use the executed epoch-100 latent for readout. For fixed region counts,
+`SpaDOT analyze --n_clusters ... --seed 2026 --n_init 10` uses KMeans++
+and Lloyd updates. Dataset-specific K values used in the evaluations were
+Chicken Heart 5/7/7/6, Axolotl 6/7/8, and Mouse Embryo 5/5/5; confirm K from
+the frozen run manifest before reproducing an ARI.
+
+The historic 100-update experiments retained `maxiter=300` only to get a
+30-epoch KL period. This release separates period from the total epoch count.
+The new package should be benchmarked against the three frozen inputs before
+claiming numerical equivalence, including the spatial Heart/Liver and MP/DP
+checks. Matching the KL schedule alone does not prove an identical run.

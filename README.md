@@ -7,6 +7,33 @@ Software for the manuscript "Optimal Transport Modeling Uncovers Spatial Domain 
 
 SpaDOT is an open-source computational method for identifying spatial domains and inferring their temporal dynamics across time points for spatiotemporal transcriptomics studies. Detailed documentation and tutorials are available at: https://marvinquiet.github.io/SpaDOT/.
 
+### Fixed 100-epoch training recipe
+
+The bundled `SpaDOT/config.yaml` trains for exactly 100 one-based epochs.
+The SVGP KL coefficient follows a 30-epoch linear cycle, controlled by
+`kl_cycle_epochs: 30`; the cycle period does not change with `maxiter`.
+The packaged trainer does not use reconstruction-loss patience or restore an
+earlier checkpoint. The saved model and `latent.h5ad` are from executed epoch
+100. A custom config without `kl_cycle_epochs` retains the historical
+ten-cycles-over-`maxiter` behavior.
+
+The evaluated workflow used seed 2026, NumPy OT, and final KMeans with
+`random_state=2026`, `n_init=10`, `init='k-means++'`, and `algorithm='lloyd'`.
+Set `CUBLAS_WORKSPACE_CONFIG=:4096:8`, `PYTHONHASHSEED=2026`, and numerical
+thread limits to 1 before launching GPU training for reproducibility.
+The evaluated input panels were:
+
+| Dataset | Spots by timepoint | Selected genes by timepoint | Unique genes in input |
+|---|---|---|---:|
+| Chicken Heart | 747 / 1,966 / 1,916 / 1,967 | 500 / 500 / 1,000 / 1,000 | 1,653 |
+| Axolotl Telencephalon | 1,477 / 2,929 / 4,410 | 500 / 500 / 1,000 | 1,250 |
+| Mouse Embryo | 2,397 / 2,312 / 3,546 | 3,000 / 3,000 / 3,000 | 4,638 |
+
+The counts above are dataset-specific exploratory presets. The spot count
+alone did not determine gene quota across these datasets. See
+`docs/fixed100_feature_panels.md` in the source repository for the selection
+and preprocessing recipe.
+
 **Table of Contents**
 - [System Requirements](#system-requirements)
 - [Installation](#installation)
@@ -79,4 +106,3 @@ This project is covered under the **MIT license**.
   url={https://doi.org/10.1038/s41467-023-37439-3}
 }
 ``` -->
-

@@ -15,7 +15,9 @@ def analyze(args):
     if args.n_clusters is None:
         latent = _analyze_utils.Adaptive_clustering(args, latent)
     else:
-        latent = _analyze_utils.KMeans_Clustering(latent, args.n_clusters)
+        latent = _analyze_utils.KMeans_Clustering(
+            latent, args.n_clusters, seed=getattr(args, 'seed', 2026),
+            n_init=getattr(args, 'n_init', 10))
     latent.obs['pixel_x'] = latent.obsm['spatial'][:, 0]
     latent.obs['pixel_y'] = latent.obsm['spatial'][:, 1]
     # draw domains
