@@ -1,5 +1,7 @@
 # General training parameters
-maxiter: 100  # Maximum number of iterations for training
+maxiter: 99  # Exactly 99 optimizer updates
+epoch_start: 1  # First displayed epoch
+epoch_stop_exclusive: 100  # Execute while epoch < 100 (epochs 1 through 99)
 kl_cycle_epochs: 30  # Reset the SVGP KL weight every 30 epochs, regardless of maxiter
 ot_epoch: 50  # Number of epochs when optimal transport loss is introduced
 # kmeans_epoch: 1  # Number of epochs for k-means clustering

@@ -7,14 +7,17 @@ Software for the manuscript "Optimal Transport Modeling Uncovers Spatial Domain 
 
 SpaDOT is an open-source computational method for identifying spatial domains and inferring their temporal dynamics across time points for spatiotemporal transcriptomics studies. Detailed documentation and tutorials are available at: https://marvinquiet.github.io/SpaDOT/.
 
-### Fixed 100-epoch training recipe
+### Fixed 99-epoch training recipe
 
-The bundled `SpaDOT/config.yaml` trains for exactly 100 one-based epochs.
+The bundled `SpaDOT/config.yaml` starts at epoch 1 and executes while
+`epoch < 100`, for exactly 99 optimizer updates (epochs 1 through 99).
 The SVGP KL coefficient follows a 30-epoch linear cycle, controlled by
 `kl_cycle_epochs: 30`; the cycle period does not change with `maxiter`.
 The packaged trainer does not use reconstruction-loss patience or restore an
 earlier checkpoint. The saved model and `latent.h5ad` are from executed epoch
-100. A custom config without `kl_cycle_epochs` retains the historical
+99. A custom config without `epoch_start` and `epoch_stop_exclusive` retains
+the historical zero-based update phases. A custom config without
+`kl_cycle_epochs` retains the historical
 ten-cycles-over-`maxiter` behavior.
 
 The evaluated workflow used seed 2026, NumPy OT, and final KMeans with
@@ -31,7 +34,7 @@ The evaluated input panels were:
 
 The counts above are dataset-specific exploratory presets. The spot count
 alone did not determine gene quota across these datasets. See
-`docs/fixed100_feature_panels.md` in the source repository for the selection
+`docs/fixed99_feature_panels.md` in the source repository for the selection
 and preprocessing recipe.
 
 **Table of Contents**

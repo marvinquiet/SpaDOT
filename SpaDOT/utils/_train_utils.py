@@ -169,6 +169,19 @@ def _beta_cycle_linear_period(n_iter, period, start=0.0, stop=1, ratio=1):
     return _beta_cycle_linear(full_length, start=start, stop=stop,
                               n_cycle=n_cycle, ratio=ratio)[:n_iter]
 
+
+def _epoch_plan(model_config):
+    """Return displayed epoch numbers while retaining zero-based update phases."""
+    n_updates = model_config['maxiter']
+    start = model_config.get('epoch_start', 0)
+    stop = model_config.get('epoch_stop_exclusive', start + n_updates)
+    if (not isinstance(n_updates, int) or n_updates < 1 or
+            not isinstance(start, int) or start < 0 or
+            not isinstance(stop, int) or stop - start != n_updates):
+        raise ValueError('epoch bounds must contain exactly maxiter updates')
+    return range(start, stop)
+
+
 def train_SpaDOT(dataloader_dict, model_config):
     SpaDOT_model = SpaDOT.SpaDOT(model_config, dataloader_dict).to(model_config['device'])
     print(SpaDOT_model)
@@ -180,20 +193,23 @@ def train_SpaDOT(dataloader_dict, model_config):
               if period is None else
               _beta_cycle_linear_period(model_config['maxiter'], period,
                                         stop=model_config['beta1']))
+    epoch_plan = _epoch_plan(model_config)
+    epoch_start = epoch_plan.start
     tp_indexed_list = list(enumerate(model_config['timepoints']))
     
     # --- initialize dictionary to store loss
     loss_dict = OrderedDict()
     loss_names = ['elbo', 'Recon', 'SVGP_KL', 'GAT_KL', 'alignment', 'KMeans', 'OT']
-    for epoch in range(model_config['maxiter']):
+    for epoch in epoch_plan:
         loss_dict[epoch] = OrderedDict()
         for name in loss_names:
             loss_dict[epoch][name] = 0
 
     print("Training SpaDOT model...")
     train_starttime = time()
-    for epoch in tqdm(range(model_config['maxiter'])):
-        beta1 = beta1s[epoch]
+    for epoch in tqdm(epoch_plan):
+        update_index = epoch - epoch_start
+        beta1 = beta1s[update_index]
         # --- start training
         SpaDOT_model.train()
         ep_starttime = time()
@@ -216,12 +232,12 @@ def train_SpaDOT(dataloader_dict, model_config):
                                      tp=tp, batch_size=batch.batch_size)
                 # --- calculate KMeans loss from latent space
                 tp_KMeans_val = torch.tensor(0, dtype=model_config['dtype'], device=model_config['device'])
-                if epoch >= 1: # add Kmeans loss after the first epoch once the latent space is generated
+                if update_index >= 1: # add Kmeans loss after the first update
                     kmeans_loss = _compute_kmeans_loss(SpaDOT_model, model_config, tp, tp_ix, tp_p_m)
                     tp_KMeans_val += kmeans_loss
                 # --- calculate OT loss from latent space
                 tp_OT_val = torch.tensor(0, dtype=model_config['dtype'], device=model_config['device'])
-                if epoch >= model_config['ot_epoch']:
+                if update_index >= model_config['ot_epoch']:
                     if tp_i != 0:
                         tp_loss = _compute_OT_loss(SpaDOT_model, model_config, tp, tp_ix, tp_p_m, model_config['timepoints'][tp_i-1])
                         tp_OT_val += tp_loss
@@ -243,12 +259,12 @@ def train_SpaDOT(dataloader_dict, model_config):
             for name in loss_names:
                 tp_loss_dict[tp][name] /= len(tp_dataloader)
                 loss_dict[epoch][f'{name}'] += tp_loss_dict[tp][name]
-        if epoch % 10 == 0:
-            print(f'Epoch {epoch + 1}: Training time: {int(time()-ep_starttime)} seconds, ELBO: {loss_dict[epoch]["elbo"]:.8f}, Recon loss: {loss_dict[epoch]["Recon"]:.8f}, SVGP KL loss: {loss_dict[epoch]["SVGP_KL"]:.8f}, GAT KL loss: {loss_dict[epoch]["GAT_KL"]:.8f}, Alignment loss: {loss_dict[epoch]["alignment"]:.8f}, Kmeans loss: {loss_dict[epoch]["KMeans"]:.8f}, OT loss: {loss_dict[epoch]["OT"]:.8f}')
+        if update_index % 10 == 0:
+            print(f'Epoch {epoch if epoch_start else update_index + 1}: Training time: {int(time()-ep_starttime)} seconds, ELBO: {loss_dict[epoch]["elbo"]:.8f}, Recon loss: {loss_dict[epoch]["Recon"]:.8f}, SVGP KL loss: {loss_dict[epoch]["SVGP_KL"]:.8f}, GAT KL loss: {loss_dict[epoch]["GAT_KL"]:.8f}, Alignment loss: {loss_dict[epoch]["alignment"]:.8f}, Kmeans loss: {loss_dict[epoch]["KMeans"]:.8f}, OT loss: {loss_dict[epoch]["OT"]:.8f}')
         # --- update Kmeans centroids
         _update_Kmeans(SpaDOT_model, model_config, dataloader_dict)
         # --- update OT matrix 
-        if (epoch + 1) % model_config['ot_config']['ot_epochs'] == 0:
+        if (update_index + 1) % model_config['ot_config']['ot_epochs'] == 0:
             _update_OT_matrix(SpaDOT_model, model_config)
 
     print('Training finished...')

@@ -1,4 +1,4 @@
-# Feature panels for the fixed 100-epoch SpaDOT recipe
+# Feature panels for the fixed 99-epoch SpaDOT recipe
 
 The following are the frozen panels used to evaluate the training recipe.
 Counts refer to genes selected **per timepoint**; the input matrix contains
@@ -40,15 +40,16 @@ reproduce these three panels.
 
 ## Training and readout
 
-Use `maxiter: 100`, `kl_cycle_epochs: 30`, seed 2026, NumPy OT
+Use `maxiter: 99`, `epoch_start: 1`, `epoch_stop_exclusive: 100`,
+`kl_cycle_epochs: 30`, seed 2026, NumPy OT
 (`use_Py: true`, `use_C: false`), and the provided model architecture.
-Use the executed epoch-100 latent for readout. For fixed region counts,
+Use the executed epoch-99 latent for readout. For fixed region counts,
 `SpaDOT analyze --n_clusters ... --seed 2026 --n_init 10` uses KMeans++
 and Lloyd updates. Dataset-specific K values used in the evaluations were
 Chicken Heart 5/7/7/6, Axolotl 6/7/8, and Mouse Embryo 5/5/5; confirm K from
 the frozen run manifest before reproducing an ARI.
 
-The historic 100-update experiments retained `maxiter=300` only to get a
+The historic 99-update experiments retained `maxiter=300` only to get a
 30-epoch KL period. This release separates period from the total epoch count.
 The new package should be benchmarked against the three frozen inputs before
 claiming numerical equivalence, including the spatial Heart/Liver and MP/DP

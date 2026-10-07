@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from SpaDOT.utils._train_utils import _beta_cycle_linear, _beta_cycle_linear_period
+from SpaDOT.utils._train_utils import _beta_cycle_linear, _beta_cycle_linear_period, _epoch_plan
 
 
 def test_first_100_weights_match_the_validated_300_epoch_schedule():
@@ -12,6 +12,23 @@ def test_first_100_weights_match_the_validated_300_epoch_schedule():
     np.testing.assert_array_equal(actual, reference)
     assert actual[0] == actual[30] == actual[60] == actual[90] == 0.0
     assert actual[99] == reference[99]
+
+
+def test_epochs_one_through_ninety_nine_keep_original_update_phases():
+    plan = _epoch_plan({"maxiter": 99, "epoch_start": 1,
+                        "epoch_stop_exclusive": 100})
+    assert list(plan) == list(range(1, 100))
+    assert [(epoch - plan.start) for epoch in plan] == list(range(99))
+    np.testing.assert_array_equal(
+        _beta_cycle_linear_period(len(plan), 30),
+        _beta_cycle_linear(300)[:99],
+    )
+
+
+def test_inconsistent_epoch_bounds_rejected():
+    with pytest.raises(ValueError):
+        _epoch_plan({"maxiter": 100, "epoch_start": 1,
+                     "epoch_stop_exclusive": 100})
 
 
 def test_period_is_independent_of_training_horizon():
