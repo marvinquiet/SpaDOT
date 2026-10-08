@@ -23,8 +23,7 @@ def KMeans_Clustering(adata, n_clusters, seed=2026, n_init=10):
     adata : anndata.AnnData
         The AnnData object with the clustering results added to the obs.
     """
-    tps = adata.obs['timepoint'].unique()
-    tps.sort()
+    tps = sorted(adata.obs['timepoint'].unique())
     tp_adata_list = []
     for i, tp in enumerate(tps):
         # perform KMeans clustering
@@ -61,8 +60,7 @@ def Adaptive_clustering(args, adata, min_clusters=4, max_clusters=20, wss_thresh
 
     seed = getattr(args, 'seed', 2026)
     n_init = getattr(args, 'n_init', 10)
-    tps = adata.obs['timepoint'].unique()
-    tps.sort()
+    tps = sorted(adata.obs['timepoint'].unique())
     tp_adata_list = []
     for i, tp in enumerate(tps):
         # perform KMeans clustering
@@ -131,8 +129,7 @@ def OT_analysis(args, adata):
     # generate region dict
     adata.obs['SpaDOT_pred_labels'] = adata.obs['timepoint'].astype('str')+'_'+adata.obs['kmeans'].astype('str')
     latent_cell_sets = adata.obs.groupby('SpaDOT_pred_labels').apply(lambda x: x.index.tolist()).to_dict()
-    days = adata.obs['day'].unique()
-    days.sort()
+    days = sorted(adata.obs['day'].unique())
     for tp_i in range(len(days)-1):
         prev_day = days[tp_i]
         next_day = days[tp_i+1]
@@ -179,8 +176,7 @@ def plot_OT(args, adata):
     -------
     None
     """
-    days = adata.obs['day'].unique()
-    days.sort()
+    days = sorted(adata.obs['day'].unique())
     for tp_i in range(len(days)-1):
         prev_day = days[tp_i]
         next_day = days[tp_i+1]
