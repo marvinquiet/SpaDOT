@@ -79,7 +79,7 @@ SpaDOT requires the following:
 
 **Note:** If using GPU resources, you might also need to install the CUDA Toolkit and NVIDIA cuDNN libraries. Detailed setup instructions can be found [here](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/). Please make sure to install a compatible version for PyTorch.
 
-To fully leverage SpaDOT’s capabilities, installing [R](https://www.r-project.org/) and the [SPARK-X](https://xzhoulab.github.io/SPARK/) package is recommended for selecting spatially variable genes.
+R is not required. `SpaDOT preprocess --n_features` selects spatially variable genes using the bundled Python SPARK-X implementation and pseudoregion ranking. Use `--feature_panel` with the saved lists to reproduce the evaluated example inputs exactly.
 
 ## Installation
 
