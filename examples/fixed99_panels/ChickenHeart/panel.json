@@ -1,0 +1,61 @@
+{
+  "dataset": "ChickenHeart",
+  "raw_file": "ChickenHeart_data/ChickenHeart.h5ad",
+  "raw_sha256": "e1ce8607a8f28365eda5b27ab0dfccca1d229105d439607e4857892f03d51dd4",
+  "selected_genes_per_timepoint": {
+    "0": 500,
+    "1": 500,
+    "2": 1000,
+    "3": 1000
+  },
+  "spots_per_timepoint": {
+    "0": 747,
+    "1": 1966,
+    "2": 1916,
+    "3": 1967
+  },
+  "union_genes": 1653,
+  "union_genes_sha256": "4968fe4d6aba15b1abb357afe4808dd1be9694aa493c3179e9c60ed37fae6569",
+  "spot_metadata_sha256": "150207bd9e6ab9f73cb832629f2ff07852d560d7d64c24c9bf0702d3ddd9c264",
+  "reference_input_sha256": "53c98e1ac75d1509d8992d9bef9bcfa62a06a2bef8380c7e9402888c7057cb90",
+  "reference_input_shape": [
+    6596,
+    1653
+  ],
+  "selection": "R SPARK-X FDR candidates; KMeans-12 expression/spatial pseudoregion contrasts; top-100 SPARK-X genes protected per timepoint",
+  "preprocessing": "selected raw counts; per-timepoint normalize_total(target_sum=1e-4), log1p, scale",
+  "training": {
+    "epoch_start": 1,
+    "epoch_stop_exclusive": 100,
+    "kl_cycle_epochs": 30,
+    "seed": 2026
+  },
+  "retained_genes": 23833,
+  "retained_genes_sha256": "f9c9abdfa440cc6874412f08b41cf3a8eee7db0661f2437ae3a52b2d0a16a536",
+  "selection_parameters": {
+    "candidate_pool_per_timepoint": {
+      "0": 1100,
+      "1": 1100,
+      "2": 1100,
+      "3": 1100
+    },
+    "pca_pool_per_timepoint": {
+      "0": 1100,
+      "1": 1100,
+      "2": 1100,
+      "3": 1100
+    },
+    "sparkx_table_sha256": {
+      "0": "5d17fd762a5dd43f9b6c0cd12f98dad10f0b9d4effbd2229b52421fe6ba063e5",
+      "1": "70e1a69ecdd6826e20ff9549ef25632c7290615764fc4be2c9aaf021dc36edd0",
+      "2": "341a70d18fd9b7bcf693e6b121cc7d6e39223834c71e4ef43352a99b869a82f9",
+      "3": "dda40c3f61ae94148deadb62f2f977219cd2e9881db7959103a4883f4e38a692"
+    },
+    "pseudoregions": 12,
+    "minimum_pseudoregion_spots_for_gene_scoring": 20,
+    "protected_sparkx_genes_per_timepoint": 100,
+    "seed": 2026,
+    "pca_components": 8,
+    "kmeans_n_init": 10
+  }
+}

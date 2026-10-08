@@ -15,8 +15,7 @@ def test_first_100_weights_match_the_validated_300_epoch_schedule():
 
 
 def test_epochs_one_through_ninety_nine_keep_original_update_phases():
-    plan = _epoch_plan({"maxiter": 99, "epoch_start": 1,
-                        "epoch_stop_exclusive": 100})
+    plan = _epoch_plan({"epoch_start": 1, "epoch_stop_exclusive": 100})
     assert list(plan) == list(range(1, 100))
     assert [(epoch - plan.start) for epoch in plan] == list(range(99))
     np.testing.assert_array_equal(
@@ -25,10 +24,14 @@ def test_epochs_one_through_ninety_nine_keep_original_update_phases():
     )
 
 
-def test_inconsistent_epoch_bounds_rejected():
+@pytest.mark.parametrize('bounds', [
+    {"epoch_start": 1, "epoch_stop_exclusive": 1},
+    {"epoch_start": 100, "epoch_stop_exclusive": 1},
+    {"epoch_start": 1},
+])
+def test_invalid_epoch_bounds_rejected(bounds):
     with pytest.raises(ValueError):
-        _epoch_plan({"maxiter": 100, "epoch_start": 1,
-                     "epoch_stop_exclusive": 100})
+        _epoch_plan(bounds)
 
 
 def test_period_is_independent_of_training_horizon():

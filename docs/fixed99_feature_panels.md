@@ -34,13 +34,16 @@ Use the table as dataset-specific presets, not as a general law.
    genes are present in all timepoints. The source input audits independently
    reconstructed the resulting matrices with maximum absolute difference 0.
 
-The panel selection is a separate, versioned input-preparation procedure.
-The package's general `SpaDOT preprocess` command is not claimed to
-reproduce these three panels.
+The panel selection is implemented in
+`examples/select_pseudoregion_svgs.py` and `examples/run_filtered_sparkx.R`.
+The three notebooks load the frozen lists and use
+`examples/fixed99_example.py` to prepare the validated model inputs.
+The package's general `SpaDOT preprocess` command uses a different feature
+selection rule and does not reproduce these three panels.
 
 ## Training and readout
 
-Use `maxiter: 99`, `epoch_start: 1`, `epoch_stop_exclusive: 100`,
+Use `epoch_start: 1`, `epoch_stop_exclusive: 100`,
 `kl_cycle_epochs: 30`, seed 2026, the built-in NumPy OT solver,
 and the provided model architecture.
 The release candidate includes only this Python/NumPy OT backend. It has no
@@ -51,8 +54,9 @@ and Lloyd updates. Dataset-specific K values used in the evaluations were
 Chicken Heart 5/7/7/6, Axolotl 6/7/8, and Mouse Embryo 5/5/5; confirm K from
 the frozen run manifest before reproducing an ARI.
 
-The historic 99-update experiments retained `maxiter=300` only to get a
-30-epoch KL period. This release separates period from the total epoch count.
+The historic 99-update experiments retained a 300-update training horizon
+only to get a 30-epoch KL period. This release separates the cycle period
+from the actual epoch bounds.
 The new package should be benchmarked against the three frozen inputs before
 claiming numerical equivalence, including the spatial Heart/Liver and MP/DP
 checks. Matching the KL schedule alone does not prove an identical run.

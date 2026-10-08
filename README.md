@@ -12,13 +12,13 @@ SpaDOT is an open-source computational method for identifying spatial domains an
 The bundled `SpaDOT/config.yaml` starts at epoch 1 and executes while
 `epoch < 100`, for exactly 99 optimizer updates (epochs 1 through 99).
 The SVGP KL coefficient follows a 30-epoch linear cycle, controlled by
-`kl_cycle_epochs: 30`; the cycle period does not change with `maxiter`.
+`kl_cycle_epochs: 30`; its period is independent of the training length.
 The packaged trainer does not use reconstruction-loss patience or restore an
 earlier checkpoint. The saved model and `latent.h5ad` are from executed epoch
-99. A custom config without `epoch_start` and `epoch_stop_exclusive` retains
-the historical zero-based update phases. A custom config without
-`kl_cycle_epochs` retains the historical
-ten-cycles-over-`maxiter` behavior.
+99. Set `epoch_start` and `epoch_stop_exclusive` in custom configs; their
+difference is the number of optimizer updates. `maxiter` is no longer a
+training setting. A custom config without `kl_cycle_epochs` retains the
+historical ten cycles over its training length.
 
 The evaluated workflow used seed 2026, NumPy OT, and final KMeans with
 `random_state=2026`, `n_init=10`, `init='k-means++'`, and `algorithm='lloyd'`.
@@ -39,7 +39,13 @@ The evaluated input panels were:
 The counts above are dataset-specific exploratory presets. The spot count
 alone did not determine gene quota across these datasets. See
 `docs/fixed99_feature_panels.md` in the source repository for the selection
-and preprocessing recipe.
+and preprocessing recipe. The executable notebooks are
+[`ChickenHeart.ipynb`](examples/ChickenHeart.ipynb),
+[`AxolotlTelencephalon.ipynb`](examples/AxolotlTelencephalon.ipynb), and
+[`MouseEmbryo.ipynb`](examples/MouseEmbryo.ipynb). Each uses the audited
+frozen lists in `examples/fixed99_panels/`. The feature selection procedure
+itself is implemented in `examples/select_pseudoregion_svgs.py` and
+`examples/run_filtered_sparkx.R`.
 
 **Table of Contents**
 - [System Requirements](#system-requirements)

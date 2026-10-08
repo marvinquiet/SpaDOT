@@ -151,7 +151,7 @@ def _beta_cycle_linear(n_iter, start=0.0, stop=1, n_cycle=10, ratio=1):
 
 
 def _beta_cycle_linear_period(n_iter, period, start=0.0, stop=1, ratio=1):
-    """Use a fixed number of epochs per KL cycle, independent of maxiter.
+    """Use a fixed number of epochs per KL cycle, independent of the training horizon.
 
     Rounding up to complete cycles and taking a prefix preserves the original
     floating-point schedule. In particular, 100 epochs with period 30 exactly
@@ -169,13 +169,11 @@ def _beta_cycle_linear_period(n_iter, period, start=0.0, stop=1, ratio=1):
 
 def _epoch_plan(model_config):
     """Return displayed epoch numbers while retaining zero-based update phases."""
-    n_updates = model_config['maxiter']
-    start = model_config.get('epoch_start', 0)
-    stop = model_config.get('epoch_stop_exclusive', start + n_updates)
-    if (not isinstance(n_updates, int) or n_updates < 1 or
-            not isinstance(start, int) or start < 0 or
-            not isinstance(stop, int) or stop - start != n_updates):
-        raise ValueError('epoch bounds must contain exactly maxiter updates')
+    start = model_config.get('epoch_start')
+    stop = model_config.get('epoch_stop_exclusive')
+    if (type(start) is not int or start < 0 or
+            type(stop) is not int or stop <= start):
+        raise ValueError('epoch_start and epoch_stop_exclusive must define a nonempty range')
     return range(start, stop)
 
 
@@ -185,12 +183,13 @@ def train_SpaDOT(dataloader_dict, model_config):
     optimizer = optim.AdamW(filter(lambda p: p.requires_grad, SpaDOT_model.parameters()), lr=model_config['lr'])
 
     # --- prepare training
-    period = model_config.get('kl_cycle_epochs')
-    beta1s = (_beta_cycle_linear(model_config['maxiter'], stop=model_config['beta1'])
-              if period is None else
-              _beta_cycle_linear_period(model_config['maxiter'], period,
-                                        stop=model_config['beta1']))
     epoch_plan = _epoch_plan(model_config)
+    n_updates = len(epoch_plan)
+    period = model_config.get('kl_cycle_epochs')
+    beta1s = (_beta_cycle_linear(n_updates, stop=model_config['beta1'])
+              if period is None else
+              _beta_cycle_linear_period(n_updates, period,
+                                        stop=model_config['beta1']))
     epoch_start = epoch_plan.start
     tp_indexed_list = list(enumerate(model_config['timepoints']))
     

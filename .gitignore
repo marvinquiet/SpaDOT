@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.h5ad
+examples/fixed99_runs/
 # model parameters
 *.pth 
 # test folder
