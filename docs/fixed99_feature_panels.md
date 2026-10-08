@@ -49,13 +49,20 @@ For **exact reproduction** of a reported input, also pass its
 the frozen lists, checks the source hashes and quotas, and requires no R
 installation. The three notebooks use this exact mode.
 
-The existing Python SPARK-X yields very similar p-values to the original
-panel development, but floating-point differences affect some gene rankings.
-The full comparison regenerated seven of ten per-timepoint lists exactly;
-the other three shared 446/500 Chicken Heart t1, 495/500 Axolotl t0, and
-2,871/3,000 Mouse Embryo t0 genes with the frozen lists. A fresh Python
-selection is therefore a new panel and should not be described as the
-evaluated input.
+The Python SPARK-X p-values were close to the original R values in an isolated
+numerical check. Substituting only those p-values into the historical
+selection script regenerated seven of ten per-timepoint lists exactly; the
+other three shared 446/500 Chicken Heart t1, 495/500 Axolotl t0, and
+2,871/3,000 Mouse Embryo t0 genes. This check did **not** test the complete
+`SpaDOT preprocess --n_features` path, which also differs in candidate-pool
+and historical-prefix choices. Its fresh panels had substantially lower
+overlap with the frozen lists. In matched 99-epoch seed-2026 trials, global
+mean ARI was .521/.537/.559 for Chicken Heart/Axolotl/Mouse Embryo versus
+.526/.611/.594 for the frozen panels. The fresh Axolotl panel merged MP and
+DP at t2; the fresh Mouse panel merged Heart and Liver at t0 and t1. These
+development results do not establish generalization. A fresh Python
+selection is a new input panel; use `--feature_panel` to reproduce evaluated
+results.
 
 ## Training and readout
 

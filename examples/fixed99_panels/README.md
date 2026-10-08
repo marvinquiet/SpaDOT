@@ -47,8 +47,10 @@ SpaDOT preprocess --data new_data.h5ad --output_dir new_output \
 ```
 
 The counts map to timepoints in natural label order. Supply exactly one
-integer of at least 100 per timepoint. The Python path does not guarantee
-identical gene identities to these frozen evaluation panels: a full comparison
-reproduced seven of ten timepoint lists exactly, while small numerical
-SPARK-X ranking differences changed the other three. Use `--feature_panel`
-when reproducing the reported results.
+integer of at least 100 per timepoint. A numerical check substituting Python
+SPARK-X into the historical selection script reproduced seven of ten lists;
+it did **not** test this complete CLI selector. The CLI candidate-pool and
+historical-prefix choices can yield substantially different panels. In the
+fixed-99 comparison, fresh Python panels did not preserve Axolotl MP/DP or
+Mouse Embryo Heart/Liver separation. Use `--feature_panel` when reproducing
+the reported results.

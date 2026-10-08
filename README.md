@@ -47,8 +47,9 @@ lists. The executable notebooks are
 [`AxolotlTelencephalon.ipynb`](examples/AxolotlTelencephalon.ipynb), and
 [`MouseEmbryo.ipynb`](examples/MouseEmbryo.ipynb). Each uses the audited
 frozen lists in `examples/fixed99_panels/`. The R-free selection procedure is
-integrated into `SpaDOT/utils/_preprocess_utils.py`. Fresh Python rankings can
-differ slightly from the saved evaluated lists; see the panel documentation.
+integrated into `SpaDOT/utils/_preprocess_utils.py`. A fresh Python panel can
+differ materially from the saved evaluated lists and need not reproduce their
+spatial results; see the panel documentation.
 
 **Table of Contents**
 - [System Requirements](#system-requirements)
