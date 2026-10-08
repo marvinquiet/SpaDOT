@@ -38,7 +38,7 @@ omiga1: 0.1  # Weight for alignment loss
 omiga2: 0.1  # Weight for K-Means loss
 omiga3: 1.0  # Weight for OT loss
 
-# OT configuration, refer to: https://github.com/broadinstitute/wot/
+# NumPy OT configuration
 ot_config:
   growth_iters: 3  # Number of growth iterations for OT
   ot_epochs: 10  # Number of epochs for OT
@@ -47,14 +47,7 @@ ot_config:
   lambda1: 0.1  # Regularization parameter for OT row imbalance
   lambda2: 5.0  # Regularization parameter for OT column imbalance
   tau: 1000  # Scaling factor for OT
-  scaling_iter: 3000  # Number of scaling iterations for OT
-  inner_iter_max: 50  # Maximum number of inner iterations for OT
   tolerance: 0.00000001  # Tolerance for convergence in OT
   max_iter: 10000000  # Maximum number of iterations for OT
   batch_size: 5  # Batch size for OT
-  extra_iter: 1000  # Number of extra iterations for OT
-  numItermax: 1000000  # Maximum number of iterations for OT solver
-  use_Py: true  # Evaluated NumPy OT implementation
-  use_C: false  # The C OT backend is not bundled
   profiling: false  # Whether to enable profiling for OT
-  method: "waddington"  # Method used for OT

@@ -2,7 +2,7 @@ import os
 import random
 import numpy as np
 import anndata
-from SpaDOT.utils import _preprocess_utils # for debugging
+from SpaDOT.utils import _preprocess_utils
 
 seed=1993
 random.seed(seed)
@@ -29,20 +29,3 @@ def preprocess(args):
     # preprocess adata based on whether performing SVG selection
     preprocessed_adata = _preprocess_utils.preprocess_adata(args, adata)
     preprocessed_adata.write_h5ad(os.path.join(args.output_dir, args.prefix + os.path.basename(data_dir)))
-
-if __name__ == '__main__':
-    # data_dir = "./examples"
-    data_dir = "/net/mulan/home/wenjinma/projects/SpaDOT/examples"
-    # create arguments for testing
-    class Args:
-        data = os.path.join(data_dir, "ChickenHeart.h5ad")
-        prefix = "preprocessed_"
-        feature_selection = True
-    args = Args()
-    # create output directory if not exists
-    if 'output_dir' not in args.__dict__:
-        args.output_dir = os.path.dirname(args.data)
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-    # run preprocessing
-    preprocess(args)

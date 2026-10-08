@@ -42,23 +42,3 @@ def train(args):
     # obtain the latent representation
     latent_adata = _train_utils.get_latent(SpaDOT_model, model_config, adata, dataloader_dict)
     latent_adata.write_h5ad(args.output_dir+os.sep+args.prefix+'latent.h5ad')
-
-if __name__ == "__main__":
-    # data_dir = "./examples"
-    data_dir = "/net/mulan/home/wenjinma/projects/SpaDOT/examples"
-    # create arguments for testing
-    class Args:
-        data = os.path.join(data_dir, "preprocessed_ChickenHeart.h5ad")
-        prefix = ""
-        config = None
-        save_model = True
-        device = 'cuda:0'
-    args = Args()
-    print(args)
-    # create output directory if not exists
-    if 'output_dir' not in args.__dict__:
-        args.output_dir = os.path.dirname(args.data)
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-    # train SpaDOT model
-    train(args)

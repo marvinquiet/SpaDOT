@@ -23,7 +23,9 @@ ten-cycles-over-`maxiter` behavior.
 The evaluated workflow used seed 2026, NumPy OT, and final KMeans with
 `random_state=2026`, `n_init=10`, `init='k-means++'`, and `algorithm='lloyd'`.
 The bundled OT solver is Python/NumPy only. It does not load or ship
-`libot.so`; configurations requesting `use_C: true` raise an explicit error.
+`libot.so`, and no backend flag is needed. Older configurations with
+`use_Py: true` and `use_C: false` still work; requesting the removed
+C backend raises an explicit error.
 Set `CUBLAS_WORKSPACE_CONFIG=:4096:8`, `PYTHONHASHSEED=2026`, and numerical
 thread limits to 1 before launching GPU training for reproducibility.
 The evaluated input panels were:

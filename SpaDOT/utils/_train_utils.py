@@ -1,4 +1,3 @@
-import os
 from time import time
 import random
 import numpy as np
@@ -17,9 +16,8 @@ from torch_geometric.loader import NeighborLoader
 from tqdm.auto import tqdm
 from collections import OrderedDict
 
-# --- my package
 from SpaDOT.utils import _utils
-from SpaDOT.utils.OT_loss.ot_solvers import compute_transport_map # Waddington, faster C version
+from SpaDOT.utils.OT_loss.ot_solvers import compute_transport_map
 from SpaDOT.model import SpaDOT
 
 class MyDataset(Dataset):
@@ -72,7 +70,6 @@ def prepare_dataloader(adata, model_config):
         tp_edge_index, _ = dense_to_sparse(tp_adj)
         tp_graph_data = Data(
             x=torch.tensor(tp_adata.X, dtype=model_config['dtype']),
-            # edge_index=tp_edge_index.clone().to(dtype=torch.long), # torch copy warning
             edge_index=torch.tensor(tp_edge_index, dtype=torch.long),
             data_index=torch.tensor(tp_ix, dtype=torch.int),
             loc=torch.tensor(tp_loc, dtype=model_config['dtype'])
