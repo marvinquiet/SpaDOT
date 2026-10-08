@@ -5,16 +5,14 @@ import numpy as np
 import torch
 from copy import deepcopy
 import time
+import logging
 
-import ctypes
-from .ot_func import dummy_c, primal_c, dual_c, compute_duality_gap_c, update_K_c, update_R_c, update_a_b_c, step1_process_c, update_process_c
+logger = logging.getLogger(__name__)
 
 log_step = False
 
 debug = False
 debug_p1 = False
-c_for_p1 = True
-c_for_v2 = True
 
 default_config = {
     "growth_iters": 3,
@@ -30,8 +28,8 @@ default_config = {
     "batch_size": 5,
     "extra_iter": 1000,
     "numItermax": 1000000,
-    "use_Py": False,
-    "use_C": True,
+    "use_Py": True,
+    "use_C": False,
     "profiling": False
 }  # specified in tutorial
 
@@ -177,65 +175,41 @@ def optimal_transport_duality_gap(
     profiling,
     **ignored,
 ):
+    """Compute the stabilized OT map using the evaluated NumPy solver.
+
+    The legacy flags remain accepted for config compatibility. The bundled
+    package supports only ``use_Py=True, use_C=False``; requesting the removed
+    C backend raises an explicit error before any solver work begins.
     """
-    Compute the optimal transport with stabilized numerics, with the guarantee that the duality gap is at most `tolerance`
-    Parameters
-    ----------
-    C : 2-D ndarray
-        The cost matrix. C[i][j] is the cost to transport cell i to cell j
-    G : 1-D array_like
-        Growth value for input cells.
-    lambda1 : float, optional
-        Regularization parameter for the marginal constraint on p
-    lambda2 : float, optional
-        Regularization parameter for the marginal constraint on q
-    epsilon : float, optional
-        Entropy regularization parameter.
-    batch_size : int, optional
-        Number of iterations to perform between each duality gap check
-    tolerance : float, optional
-        Upper bound on the duality gap that the resulting transport map must guarantee.
-    tau : float, optional
-        Threshold at which to perform numerical stabilization
-    epsilon0 : float, optional
-        Starting value for exponentially-decreasing epsilon
-    max_iter : int, optional
-        Maximum number of iterations. Print a warning and return if it is reached, even without convergence.
-    Returns
-    -------
-    transport_map : 2-D ndarray
-        The entropy-regularized unbalanced transport map
-    """
+    if use_C or not use_Py:
+        raise ValueError("This SpaDOT build requires use_Py=True and use_C=False")
+
     cnt_step0 = 0
     cnt_step1 = 0
     cnt_step2 = 0
-
     time_i0 = time.time()
 
     C = np.asarray(C, dtype=np.float64)
-
     epsilon_scalings = 5
     scale_factor = np.exp(-np.log(epsilon) / epsilon_scalings)
 
     I, J = C.shape
     dx, dy = np.ones(I) / I, np.ones(J) / J
-
     p = G
     q = np.ones(C.shape[1]) * np.average(G)
-
     u, v = np.zeros(I), np.zeros(J)
     a, b = np.ones(I), np.ones(J)
 
     dtype = np.float64
-    C  = np.ascontiguousarray(C, dtype=dtype)
+    C = np.ascontiguousarray(C, dtype=dtype)
     dx = np.ascontiguousarray(dx, dtype=dtype)
     dy = np.ascontiguousarray(dy, dtype=dtype)
-    p  = np.ascontiguousarray(p, dtype=dtype)
-    q  = np.ascontiguousarray(q, dtype=dtype)
-    u  = np.ascontiguousarray(u, dtype=dtype)
-    v  = np.ascontiguousarray(v, dtype=dtype)
-    a  = np.ascontiguousarray(a, dtype=dtype)
-    b  = np.ascontiguousarray(b, dtype=dtype)
+    p = np.ascontiguousarray(p, dtype=dtype)
+    q = np.ascontiguousarray(q, dtype=dtype)
+    u = np.ascontiguousarray(u, dtype=dtype)
+    v = np.ascontiguousarray(v, dtype=dtype)
+    a = np.ascontiguousarray(a, dtype=dtype)
+    b = np.ascontiguousarray(b, dtype=dtype)
 
     epsilon_i = epsilon0 * scale_factor
     current_iter = 0
@@ -245,195 +219,101 @@ def optimal_transport_duality_gap(
             print('Compute for epsilon scaling {}'.format(e))
 
         duality_gap = np.inf
-
         u = u + epsilon_i * np.log(a)
         v = v + epsilon_i * np.log(b)  # absorb
-
         a, b = np.ones(I), np.ones(J)
-
         epsilon_i = epsilon_i / scale_factor
-
         alpha1 = lambda1 / (lambda1 + epsilon_i)
         alpha2 = lambda2 / (lambda2 + epsilon_i)
-
         old_a = a.copy()
         old_b = b.copy()
-
         threshold = tolerance if e == epsilon_scalings else 1e-6
 
         time_k0 = time.time()
-
-        if use_C:
-            K = np.zeros_like(C)
-            _K = np.zeros_like(C)
-            update_K_c(K, _K, C, u, v, epsilon_i)
-        else:
-            _K = np.exp(-C / epsilon_i)
-            K = np.exp((np.array([u]).T - C + np.array([v])) / epsilon_i)
-
+        _K = np.exp(-C / epsilon_i)
+        K = np.exp((np.array([u]).T - C + np.array([v])) / epsilon_i)
         time_k5 = time.time()
-
         R = np.zeros(K.shape)
-
         if profiling:
             print('step0 {:3f} ms'.format(1000 * (time_k5 - time_k0)))
         cnt_step0 += time_k5 - time_k0
 
-        if use_C and c_for_v2:
-            duality_gap = update_process_c(
-                R, a, b, old_a, old_b, K, _K, C,
-                dx, dy, p, q, u, v,
-                epsilon_scalings, e, batch_size, epsilon_i, threshold,
-                tau, lambda1, lambda2, alpha1, alpha2,
-                current_iter, max_iter
-            )
-        else:
-            while duality_gap > threshold:
-                if debug:
-                    print('  {} - duality_gap {}'.format(current_iter, duality_gap))
+        while duality_gap > threshold:
+            if debug:
+                print('  {} - duality_gap {}'.format(current_iter, duality_gap))
+            if debug_p1:
+                print('pre', a.sum(), b.sum())
+                print('a', a.sum())
+                print('b', b.sum())
+
+            time_s1 = time.time()
+            for i in range(batch_size if e == epsilon_scalings else 5):
+                current_iter += 1
+                old_a, old_b = a, b
+
+                if profiling:
+                    time_h1 = time.time()
+                a = (p / (K.dot(np.multiply(b, dy)))) ** alpha1 * np.exp(-u / (lambda1 + epsilon_i))
+                if profiling:
+                    time_h2 = time.time()
+                b = (q / (K.T.dot(np.multiply(a, dx)))) ** alpha2 * np.exp(-v / (lambda2 + epsilon_i))
+                if profiling:
+                    time_h3 = time.time()
+                    print('step1 {:3f} ms'.format(1000 * (time_h2 - time_h1)))
+                    print('step1 {:3f} ms'.format(1000 * (time_h3 - time_h2)))
 
                 if debug_p1:
-                    print('pre', a.sum(), b.sum())
+                    print('a', a.sum())
+                    print('b', b.sum())
 
-                if not c_for_p1 or use_Py:
+                # Numerical stabilization is identical to the previous
+                # use_Py=True, use_C=False branch.
+                if max(max(abs(a)), max(abs(b))) > tau:
+                    u = u + epsilon_i * np.log(a)
+                    v = v + epsilon_i * np.log(b)  # absorb
+                    K = np.exp((np.array([u]).T - C + np.array([v])) / epsilon_i)
+                    a, b = np.ones(I), np.ones(J)
                     if debug_p1:
-                        print('a', a.sum())
-                        print('b', b.sum())
+                        print('stabilization')
 
-                    time_s1 = time.time()
-                    for i in range(batch_size if e == epsilon_scalings else 5):
-                        current_iter += 1
-                        old_a, old_b = a, b
+                if current_iter >= max_iter:
+                    logger.warning("Reached max_iter with duality gap still above threshold. Returning")
+                    return (K.T * a).T * b
 
-                        if profiling:
-                            time_h1 = time.time()
+            time_s2 = time.time()
+            if debug_p1:
+                print('post', a.sum(), b.sum())
+                print('old ab', old_a.sum(), old_b.sum())
+                print('uv', u.sum(), v.sum())
+            if profiling:
+                print('step1 {:3f} ms'.format(1000 * (time_s2 - time_s1)))
+            cnt_step1 += time_s2 - time_s1
 
-                        a = (p / (K.dot(np.multiply(b, dy)))) ** alpha1 * np.exp(-u / (lambda1 + epsilon_i))
+            time_s3 = time.time()
+            # The real dual variables; a and b are only stabilized variables.
+            _a = a * np.exp(u / epsilon_i)
+            _b = b * np.exp(v / epsilon_i)
 
-                        if profiling:
-                            time_h2 = time.time()
+            # Before the final epsilon scale, use dual-variable evolution.
+            if e == epsilon_scalings:
+                R = (K.T * a).T * b
+                pri = primal(C, _K, R, dx, dy, p, q, _a, _b, epsilon_i, lambda1, lambda2)
+                dua = dual(C, _K, R, dx, dy, p, q, _a, _b, epsilon_i, lambda1, lambda2)
+                duality_gap = (pri - dua) / abs(pri)
+            else:
+                duality_gap = max(
+                    np.linalg.norm(_a - old_a * np.exp(u / epsilon_i)) / (1 + np.linalg.norm(_a)),
+                    np.linalg.norm(_b - old_b * np.exp(v / epsilon_i)) / (1 + np.linalg.norm(_b)),
+                )
 
-                        b = (q / (K.T.dot(np.multiply(a, dx)))) ** alpha2 * np.exp(-v / (lambda2 + epsilon_i))
-
-                        if profiling:
-                            time_h3 = time.time()
-
-                        if profiling:
-                            print('step1 {:3f} ms'.format(1000 * (time_h2 - time_h1)))
-                            print('step1 {:3f} ms'.format(1000 * (time_h3 - time_h2)))
-
-                        if debug_p1:
-                            print('a', a.sum())
-                            print('b', b.sum())
-
-                        # stabilization
-                        if max(max(abs(a)), max(abs(b))) > tau:
-                            u = u + epsilon_i * np.log(a)
-                            v = v + epsilon_i * np.log(b)  # absorb
-                            K = np.exp((np.array([u]).T - C + np.array([v])) / epsilon_i)
-                            a, b = np.ones(I), np.ones(J)
-
-                            if debug_p1:
-                                print('stabilization')
-
-                        if current_iter >= max_iter:
-                            logger.warning("Reached max_iter with duality gap still above threshold. Returning")
-                            return (K.T * a).T * b
-
-                    time_s2 = time.time()
-
-                if c_for_p1 and use_C:
-                    time_s1 = time.time()
-                    current_iter = step1_process_c(
-                        a, b, old_a, old_b, K, C, dx, dy, p, q, u, v,
-                        current_iter, max_iter, batch_size if e == epsilon_scalings else 5,
-                        tau, lambda1, lambda2, alpha1, alpha2, epsilon_i)
-                    time_s2 = time.time()
-
-                if debug_p1:
-                    print('post', a.sum(), b.sum())
-                    print('old ab', old_a.sum(), old_b.sum())
-                    print('uv', u.sum(), v.sum())
-
-                if profiling:
-                    print('step1 {:3f} ms'.format(1000 * (time_s2 - time_s1)))
-                cnt_step1 += time_s2 - time_s1
-
-                time_s3 = time.time()
-
-                # The real dual variables. a and b are only the stabilized variables
-                _a = a * np.exp(u / epsilon_i)
-                _b = b * np.exp(v / epsilon_i)
-
-                # Skip duality gap computation for the first epsilon scalings, use dual variables evolution instead
-                if e == epsilon_scalings:
-                    R_c = np.zeros(K.shape)
-
-                    if use_Py:
-                        time_d5 = time.time()
-                        R = (K.T * a).T * b
-                        time_d6 = time.time()
-
-                    if use_C:
-                        time_d7 = time.time()
-                        update_R_c(R_c, K, a, b)
-                        time_d8 = time.time()
-
-                    if use_Py and use_C:
-                        if profiling:
-                            print("  update_R      :            cost : {:5f} ms".format(1000 * (time_d6 - time_d5)))
-                            print("  update_R_c    :            cost : {:5f} ms".format(1000 * (time_d8 - time_d7)))
-
-                        assert(np.allclose(R, R_c))
-
-                    if not use_Py and use_C:
-                        if profiling:
-                            print("  update_R_c    :            cost : {:5f} ms".format(1000 * (time_d8 - time_d7)))
-                        R = R_c
-
-                    if use_Py:
-                        time_d1 = time.time()
-                        pri = primal(C, _K, R, dx, dy, p, q, _a, _b, epsilon_i, lambda1, lambda2)
-                        dua = dual(C, _K, R, dx, dy, p, q, _a, _b, epsilon_i, lambda1, lambda2)
-                        time_d2 = time.time()
-
-                        duality_gap = (pri - dua) / abs(pri)
-
-                    if use_C:
-                        time_d3 = time.time()
-                        duality_gap_c = compute_duality_gap_c(C, _K, R, dx, dy, p, q, _a, _b, epsilon_i, lambda1, lambda2)
-                        time_d4 = time.time()
-
-                    if use_Py and use_C:
-                        if profiling:
-                            print("  duality_gap   : {:5f}   cost : {:5f} ms".format(duality_gap, 1000 * (time_d2 - time_d1)))
-                            print("  duality_gap_c : {:5f}   cost : {:5f} ms".format(duality_gap_c, 1000 * (time_d4 - time_d3)))
-
-                        assert(np.allclose(duality_gap, duality_gap_c))
-
-                    if not use_Py and use_C:
-                        duality_gap = duality_gap_c
-
-                        if profiling:
-                            print("  duality_gap_c : {:5f}   cost : {:5f} ms".format(duality_gap_c, 1000 * (time_d4 - time_d3)))
-
-                else:
-                    duality_gap = max(
-                        np.linalg.norm(_a - old_a * np.exp(u / epsilon_i)) / (1 + np.linalg.norm(_a)),
-                        np.linalg.norm(_b - old_b * np.exp(v / epsilon_i)) / (1 + np.linalg.norm(_b)),
-                    )
-
-                time_s4 = time.time()
-
-                if profiling:
-                    print('step2 {:3f} ms'.format(1000 * (time_s4 - time_s3)))
-                cnt_step2 += time_s4 - time_s3
-
-                if debug_p1:
-                    print('last', a.sum(), b.sum())
+            time_s4 = time.time()
+            if profiling:
+                print('step2 {:3f} ms'.format(1000 * (time_s4 - time_s3)))
+            cnt_step2 += time_s4 - time_s3
+            if debug_p1:
+                print('last', a.sum(), b.sum())
 
     time_i1 = time.time()
-
     if log_step:
         print('---------------------------------------------------------')
         print('Step0 {:5f} ms'.format(1000 * cnt_step0))
@@ -445,7 +325,6 @@ def optimal_transport_duality_gap(
 
     if np.isnan(duality_gap):
         raise RuntimeError("Overflow encountered in duality gap computation, please report this incident")
-
     return R / C.shape[1]
 
 

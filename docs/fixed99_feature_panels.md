@@ -43,6 +43,8 @@ reproduce these three panels.
 Use `maxiter: 99`, `epoch_start: 1`, `epoch_stop_exclusive: 100`,
 `kl_cycle_epochs: 30`, seed 2026, NumPy OT
 (`use_Py: true`, `use_C: false`), and the provided model architecture.
+The release candidate includes only this Python/NumPy OT backend. It has no
+platform-specific `libot.so` dependency.
 Use the executed epoch-99 latent for readout. For fixed region counts,
 `SpaDOT analyze --n_clusters ... --seed 2026 --n_init 10` uses KMeans++
 and Lloyd updates. Dataset-specific K values used in the evaluations were

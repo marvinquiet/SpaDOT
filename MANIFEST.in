@@ -1,2 +1,3 @@
 include docs/fixed99_feature_panels.md
 include tests/test_fixed_kl_cycle.py
+include tests/test_python_ot.py
