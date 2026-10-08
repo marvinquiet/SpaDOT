@@ -26,6 +26,14 @@ def parse_args():
     preprocess_parser.add_argument('--feature_selection', dest='feature_selection',
             default=True, action="store_true",
             help="Whether performing feature selection. If not specified, feature selection option is chosen.")
+    preprocess_parser.add_argument('--no-feature-selection', dest='feature_selection',
+            action='store_false', help="Skip feature selection and use all genes.")
+    preprocess_parser.add_argument('--n_features', type=str,
+            help="Comma-separated SVG counts in natural timepoint order, e.g. 500,500,1000. "
+                 "Uses Python SPARK-X and 12 KMeans pseudoregions.")
+    preprocess_parser.add_argument('--feature_panel', type=str,
+            help="Optional frozen panel directory for exact reproduction with --n_features. "
+                 "Without it, Python SPARK-X selects a new panel.")
 
     # ===========================
     # Parser for training SpaDOT model to obtain latent representations

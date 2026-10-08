@@ -156,10 +156,10 @@ SpaDOT preprocess --data ./ChickenHeart.h5ad --output_dir ./ChickenHeart_output
 
 <summary>More about no feature selection</summary>
 
-<p>If you prefer not to perform spatially variable gene selection, you can add the option <code>--feature_selection False</code> to use all genes in the dataset. However, we still <strong>recommend performing feature selection, as it generally leads to better results and faster computation</strong>.</p>
+<p>If you prefer not to perform spatially variable gene selection, add <code>--no-feature-selection</code> to use all genes in the dataset. To select an explicit number of SVGs for each timepoint using Python SPARK-X and pseudoregions, pass <code>--n_features 500,500,1000</code> (one number per timepoint in natural label order). See the fixed-99 feature-panel guide for exact reproduction of the bundled examples.</p>
 
 <code>
-SpaDOT preprocess --data ./ChickenHeart.h5ad --feature_selection False --output_dir ./ChickenHeart_output
+SpaDOT preprocess --data ./ChickenHeart.h5ad --no-feature-selection --output_dir ./ChickenHeart_output
 </code>
 
 </details>

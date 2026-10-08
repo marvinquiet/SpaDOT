@@ -39,13 +39,16 @@ The evaluated input panels were:
 The counts above are dataset-specific exploratory presets. The spot count
 alone did not determine gene quota across these datasets. See
 `docs/fixed99_feature_panels.md` in the source repository for the selection
-and preprocessing recipe. The executable notebooks are
+and preprocessing recipe. `SpaDOT preprocess --n_features 500,500,1000`
+uses the bundled Python SPARK-X and pseudoregion selection, with one quota
+per timepoint. Add `--feature_panel` for exact reproduction from the frozen
+lists. The executable notebooks are
 [`ChickenHeart.ipynb`](examples/ChickenHeart.ipynb),
 [`AxolotlTelencephalon.ipynb`](examples/AxolotlTelencephalon.ipynb), and
 [`MouseEmbryo.ipynb`](examples/MouseEmbryo.ipynb). Each uses the audited
-frozen lists in `examples/fixed99_panels/`. The feature selection procedure
-itself is implemented in `examples/select_pseudoregion_svgs.py` and
-`examples/run_filtered_sparkx.R`.
+frozen lists in `examples/fixed99_panels/`. The R-free selection procedure is
+integrated into `SpaDOT/utils/_preprocess_utils.py`. Fresh Python rankings can
+differ slightly from the saved evaluated lists; see the panel documentation.
 
 **Table of Contents**
 - [System Requirements](#system-requirements)

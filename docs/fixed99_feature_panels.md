@@ -22,7 +22,7 @@ Use the table as dataset-specific presets, not as a general law.
 ## Selection and preprocessing
 
 1. Starting with raw counts, remove the previously specified mitochondrial
-   and ribosomal genes. Run R SPARK-X separately at each timepoint and retain
+   and ribosomal genes. Run SPARK-X separately at each timepoint and retain
    FDR-significant candidates.
 2. Form 12 unlabeled pseudoregions per timepoint using eight expression PCs
    and spatial coordinates with KMeans. Rank candidate genes by balanced
@@ -34,12 +34,28 @@ Use the table as dataset-specific presets, not as a general law.
    genes are present in all timepoints. The source input audits independently
    reconstructed the resulting matrices with maximum absolute difference 0.
 
-The panel selection is implemented in
-`examples/select_pseudoregion_svgs.py` and `examples/run_filtered_sparkx.R`.
-The three notebooks load the frozen lists and use
-`examples/fixed99_example.py` to prepare the validated model inputs.
-The package's general `SpaDOT preprocess` command uses a different feature
-selection rule and does not reproduce these three panels.
+`SpaDOT preprocess --n_features 500,500,1000` runs the bundled Python
+SPARK-X and pseudoregion selection. The counts must match the number of
+observed timepoints and are assigned in natural timepoint-label order.
+Each count must be at least 100. From the FDR-significant genes, the Python
+selector uses a candidate pool of
+`min(significant_count, max(1100, quota + min(quota, 1100)))` and the top
+`min(1100, candidate_pool)` candidates for PCA. It then protects the top
+100 SPARK-X genes and fills the remaining quota by balanced pseudoregion
+contrasts. If `--n_features` is omitted, the earlier Python
+SCTransform/Louvain selector remains available for compatibility.
+For **exact reproduction** of a reported input, also pass its
+`--feature_panel examples/fixed99_panels/<dataset>` directory. This loads
+the frozen lists, checks the source hashes and quotas, and requires no R
+installation. The three notebooks use this exact mode.
+
+The existing Python SPARK-X yields very similar p-values to the original
+panel development, but floating-point differences affect some gene rankings.
+The full comparison regenerated seven of ten per-timepoint lists exactly;
+the other three shared 446/500 Chicken Heart t1, 495/500 Axolotl t0, and
+2,871/3,000 Mouse Embryo t0 genes with the frozen lists. A fresh Python
+selection is therefore a new panel and should not be described as the
+evaluated input.
 
 ## Training and readout
 
