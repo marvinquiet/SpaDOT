@@ -1,9 +1,10 @@
 # Frozen feature panels for the three fixed-99 examples
 
 Each dataset directory contains the exact per-timepoint gene lists, their
-sorted union, and `spots.tsv` with the spot order and coordinates used by the
-validated input. `panel.json` records counts and source hashes. No tissue
-labels or marker identities are used in these assets.
+sorted union, the ranked FDR-significant SPARK-X candidate pool per timepoint,
+and `spots.tsv` with the spot order and coordinates used by the validated
+input. `panel.json` records counts and source hashes. No tissue labels or
+marker identities are used in these assets.
 
 | Dataset | Genes selected per timepoint | Union genes |
 |---|---|---:|
@@ -31,10 +32,16 @@ SpaDOT preprocess --data examples/ChickenHeart_data/ChickenHeart.h5ad \
 ```
 
 The command checks the raw-data and panel hashes, spot order, timepoint
-quotas, and selected-gene union. It selects those genes from raw counts and
-runs `normalize_total(target_sum=1e-4)`, `log1p`, then `scale` separately for
-each timepoint. The same union is present at every timepoint. No R installation
-or SPARK-X table is needed for this exact reproduction path.
+quotas, candidate ranks, and Mouse prefix lists. Python then recomputes the
+12 KMeans pseudoregions and balanced one-versus-rest gene ranking (or uses
+the full Mouse t2 prefix), and requires each computed list to equal its saved
+list exactly. It selects their union from raw counts and runs
+`normalize_total(target_sum=1e-4)`, `log1p`, then `scale` separately for each
+timepoint. No R installation or full SPARK-X CSV table is needed at runtime.
+`sparkx_candidates_*.txt` are immutable ranked snapshots from the original
+R SPARK-X 1.1.1 run, converted once by `export_candidate_ranks.py` with source
+table hashes checked. This is an exact **historical-panel replay in Python**;
+it does not imply that de novo Python SPARK-X has identical R p-values.
 
 ## Select a new panel entirely in Python
 

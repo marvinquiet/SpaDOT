@@ -97,11 +97,12 @@ def _standardized_expression(normalized, names):
     return matrix, valid
 
 
-def _pseudoregion_ranking(raw_part, retained, candidates, coordinates):
+def _pseudoregion_ranking(raw_part, retained, candidates, coordinates,
+                          pca_pool=1100):
     """Balance one-versus-rest expression contrasts across 12 unlabeled regions."""
     normalized = raw_part[:, retained].copy()
     sc.pp.normalize_total(normalized, target_sum=1e-4)
-    n_pca_genes = min(1100, len(candidates))
+    n_pca_genes = min(pca_pool, len(candidates))
     pca_input, _ = _standardized_expression(normalized, candidates[:n_pca_genes])
     pcs = PCA(n_components=8, whiten=True, svd_solver='randomized',
               random_state=2026).fit_transform(pca_input)
@@ -142,6 +143,34 @@ def _pseudoregion_ranking(raw_part, retained, candidates, coordinates):
     return ranked, sizes.tolist()
 
 
+def _select_pseudoregion_genes(raw_part, retained, candidates, coordinates,
+                               quota, pca_pool=1100, prefix=None):
+    """Apply the historical top-100 and balanced pseudoregion rule."""
+    if (len(candidates) < quota or len(candidates) != len(set(candidates)) or
+            pca_pool < 8 or pca_pool > len(candidates)):
+        raise ValueError('Invalid pseudoregion candidate pool')
+    if prefix is not None and (len(prefix) > quota or
+                               len(prefix) != len(set(prefix)) or
+                               not set(prefix).issubset(candidates)):
+        raise ValueError('Invalid pseudoregion prefix list')
+    if prefix is not None and len(prefix) == quota:
+        chosen, sizes = list(prefix), None
+    else:
+        ranked, sizes = _pseudoregion_ranking(
+            raw_part, retained, candidates, coordinates, pca_pool)
+        chosen = list(prefix) if prefix is not None else candidates[:100]
+        seen = set(chosen)
+        for gene in ranked:
+            if gene not in seen:
+                chosen.append(gene)
+                seen.add(gene)
+            if len(chosen) == quota:
+                break
+    if len(chosen) != quota or not set(candidates[:100]).issubset(chosen):
+        raise ValueError('Pseudoregion quota or protected SVGs missing')
+    return chosen, sizes
+
+
 def _python_pseudoregion_panel(adata, timepoints, quotas):
     """Select SVGs from raw counts using the bundled Python SPARK-X."""
     retained = _retained_genes(adata)
@@ -161,18 +190,9 @@ def _python_pseudoregion_panel(adata, timepoints, quotas):
                              f'SVGs, fewer than the requested {quota}')
         pool_size = min(len(table), max(1100, quota + min(quota, 1100)))
         candidates = table.gene.iloc[:pool_size].tolist()
-        ranked, sizes = _pseudoregion_ranking(part, retained, candidates,
-                                               coordinates)
-        chosen = table.gene.iloc[:100].tolist()
-        seen = set(chosen)
-        for gene in ranked:
-            if gene not in seen:
-                chosen.append(gene)
-                seen.add(gene)
-            if len(chosen) == quota:
-                break
-        if len(chosen) != quota:
-            raise ValueError(f'Could not fill SVG quota for timepoint {tp}')
+        chosen, sizes = _select_pseudoregion_genes(
+            part, retained, candidates, coordinates, quota,
+            pca_pool=min(1100, len(candidates)))
         selected[tp] = chosen
         detail[tp] = {'fdr_significant': len(table),
                       'candidate_pool': pool_size,
@@ -182,7 +202,7 @@ def _python_pseudoregion_panel(adata, timepoints, quotas):
 
 
 def _frozen_panel(adata, args, timepoints, quotas):
-    """Use saved SVGs for bit-identical reproduction of validated examples."""
+    """Regenerate audited example SVGs in Python, then check saved lists."""
     folder = Path(args.feature_panel)
     panel = json.loads((folder / 'panel.json').read_text())
     panel_timepoints = list(panel['selected_genes_per_timepoint'])
@@ -190,6 +210,7 @@ def _frozen_panel(adata, args, timepoints, quotas):
             list(panel['selected_genes_per_timepoint'].values()) !=
             list(quotas.values())):
         raise ValueError('--n_features does not match the frozen panel quotas')
+    panel_quotas = dict(zip(panel_timepoints, quotas.values()))
     if _sha256(args.data) != panel['raw_sha256']:
         raise ValueError('Raw input does not match the frozen panel hash')
     if _sha256(folder / 'spots.tsv') != panel['spot_metadata_sha256']:
@@ -205,8 +226,53 @@ def _frozen_panel(adata, args, timepoints, quotas):
     if _sha256(genes_file) != panel['union_genes_sha256']:
         raise ValueError('Frozen panel union gene hash mismatch')
     genes = genes_file.read_text().splitlines()
-    selected = {tp: (folder / f'genes_{tp}.txt').read_text().splitlines()
-                for tp in panel_timepoints}
+    saved = {tp: (folder / f'genes_{tp}.txt').read_text().splitlines()
+             for tp in panel_timepoints}
+    params = panel.get('selection_parameters', {})
+    rank_hashes = params.get('sparkx_candidate_ranks_sha256')
+    if rank_hashes is None and 'sparkx_table_sha256' in params:
+        raise ValueError('Historical panel is missing its candidate rank hashes')
+    selected = {}
+    details = {}
+    if rank_hashes is not None:
+        retained = _retained_genes(adata)
+        retained_hash = hashlib.sha256(
+            ''.join(gene + '\n' for gene in retained).encode()).hexdigest()
+        if (len(retained) != panel['retained_genes'] or
+                retained_hash != panel['retained_genes_sha256']):
+            raise ValueError('Historical mitochondrial/ribosomal filter mismatch')
+        if set(rank_hashes) != set(panel_timepoints):
+            raise ValueError('Historical candidate ranks omit a timepoint')
+        for tp in panel_timepoints:
+            rank_file = folder / f'sparkx_candidates_{tp}.txt'
+            if _sha256(rank_file) != rank_hashes[tp]:
+                raise ValueError(f'Historical SPARK-X rank hash mismatch: {tp}')
+            candidates = rank_file.read_text().splitlines()
+            if (len(candidates) != params['candidate_pool_per_timepoint'][tp] or
+                    not set(candidates).issubset(retained)):
+                raise ValueError(f'Historical candidate genes differ: {tp}')
+            prefix_file = folder / f'prefix_{tp}.txt'
+            if tp in params.get('prefix_sha256', {}):
+                if _sha256(prefix_file) != params['prefix_sha256'][tp]:
+                    raise ValueError(f'Historical prefix hash mismatch: {tp}')
+                prefix = prefix_file.read_text().splitlines()
+            else:
+                prefix = None
+            tp_spots = spots.loc[spots.timepoint == tp]
+            part = adata[tp_spots.spot_id.tolist()].copy()
+            coordinates = tp_spots[['spatial_x', 'spatial_y']].to_numpy(
+                dtype=np.float64)
+            chosen, sizes = _select_pseudoregion_genes(
+                part, retained, candidates, coordinates, panel_quotas[tp],
+                pca_pool=params['pca_pool_per_timepoint'][tp], prefix=prefix)
+            if chosen != saved[tp]:
+                raise ValueError(f'Python regeneration differs from saved SVGs: {tp}')
+            selected[tp] = chosen
+            details[tp] = {'candidate_pool': len(candidates),
+                           'prefix_genes': len(prefix) if prefix else 0,
+                           'pseudoregion_spot_counts': sizes}
+    else:
+        selected = saved
     if (any(len(selected[tp]) != panel['selected_genes_per_timepoint'][tp] or
             len(selected[tp]) != len(set(selected[tp]))
             for tp in panel_timepoints) or
@@ -217,7 +283,11 @@ def _frozen_panel(adata, args, timepoints, quotas):
     adata.obs['timepoint'] = spots.timepoint.to_numpy()
     adata.obsm['spatial'] = spots[['spatial_x', 'spatial_y']].to_numpy(dtype=np.float64)
     return (adata, selected,
-            {'method': 'frozen_panel',
+            {'method': ('python_replay_of_historical_ranks' if rank_hashes
+                        else 'frozen_panel'),
+             'candidate_source': ('archived_R_SPARKX_1.1.1_rank_order'
+                                  if rank_hashes else None),
+             'selection_details': details,
              'panel_sha256': _sha256(folder / 'panel.json')},
             panel_timepoints)
 

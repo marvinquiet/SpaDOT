@@ -41,8 +41,9 @@ alone did not determine gene quota across these datasets. See
 `docs/fixed99_feature_panels.md` in the source repository for the selection
 and preprocessing recipe. `SpaDOT preprocess --n_features 500,500,1000`
 uses the bundled Python SPARK-X and pseudoregion selection, with one quota
-per timepoint. Add `--feature_panel` for exact reproduction from the frozen
-lists. The executable notebooks are
+per timepoint. Add `--feature_panel` to recompute the historical pseudoregion
+lists in Python from hash-checked SPARK-X rank snapshots and verify an exact
+match. The executable notebooks are
 [`ChickenHeart.ipynb`](examples/ChickenHeart.ipynb),
 [`AxolotlTelencephalon.ipynb`](examples/AxolotlTelencephalon.ipynb), and
 [`MouseEmbryo.ipynb`](examples/MouseEmbryo.ipynb). Each uses the audited
@@ -80,7 +81,7 @@ SpaDOT requires the following:
 
 **Note:** If using GPU resources, you might also need to install the CUDA Toolkit and NVIDIA cuDNN libraries. Detailed setup instructions can be found [here](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/). Please make sure to install a compatible version for PyTorch.
 
-R is not required. `SpaDOT preprocess --n_features` selects spatially variable genes using the bundled Python SPARK-X implementation and pseudoregion ranking. Use `--feature_panel` with the saved lists to reproduce the evaluated example inputs exactly.
+R is not required at runtime. `SpaDOT preprocess --n_features` selects spatially variable genes using the bundled Python SPARK-X implementation and pseudoregion ranking. Use `--feature_panel` to regenerate and verify the evaluated example lists from their archived candidate ranks; fresh Python SPARK-X rankings can differ from the historical R rankings.
 
 ## Installation
 

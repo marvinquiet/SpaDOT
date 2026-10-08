@@ -45,9 +45,14 @@ selector uses a candidate pool of
 contrasts. If `--n_features` is omitted, the earlier Python
 SCTransform/Louvain selector remains available for compatibility.
 For **exact reproduction** of a reported input, also pass its
-`--feature_panel examples/fixed99_panels/<dataset>` directory. This loads
-the frozen lists, checks the source hashes and quotas, and requires no R
-installation. The three notebooks use this exact mode.
+`--feature_panel examples/fixed99_panels/<dataset>` directory. The bundled
+panel stores the historical R SPARK-X ranked candidate pools as immutable
+text snapshots, not as executable R code. Python checks their hashes,
+recomputes the KMeans pseudoregion contrasts and per-timepoint lists, and
+requires an exact match with the saved genes before preprocessing. The
+original R tables are needed only by the one-time Python exporter that made
+these snapshots. No R installation or R process is needed at runtime. The
+three notebooks use this exact mode.
 
 The Python SPARK-X p-values were close to the original R values in an isolated
 numerical check. Substituting only those p-values into the historical

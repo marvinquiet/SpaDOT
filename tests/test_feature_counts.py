@@ -82,3 +82,17 @@ def test_frozen_panel_can_use_different_validated_timepoint_labels(tmp_path):
     assert actual.obs.timepoint.tolist() == ['0', '0', '1', '1']
     assert actual.var_names.tolist() == names
     assert np.isfinite(actual.X).all()
+
+    # A rank snapshot advertised by the manifest must pass its hash check
+    # before it can influence an exact historical replay.
+    rank_file = panel_dir / 'sparkx_candidates_0.txt'
+    rank_file.write_text(''.join(gene + '\n' for gene in names))
+    panel = json.loads((panel_dir / 'panel.json').read_text())
+    panel['retained_genes'] = len(names)
+    panel['retained_genes_sha256'] = _sha256(union)
+    panel['selection_parameters'] = {
+        'sparkx_candidate_ranks_sha256': {'0': 'incorrect', '1': 'incorrect'},
+    }
+    (panel_dir / 'panel.json').write_text(json.dumps(panel))
+    with pytest.raises(ValueError, match='rank hash mismatch'):
+        _preprocess_with_feature_counts(args, raw)

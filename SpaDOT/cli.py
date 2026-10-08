@@ -32,8 +32,9 @@ def parse_args():
             help="Comma-separated SVG counts in natural timepoint order, e.g. 500,500,1000. "
                  "Uses Python SPARK-X and 12 KMeans pseudoregions.")
     preprocess_parser.add_argument('--feature_panel', type=str,
-            help="Optional frozen panel directory for exact reproduction with --n_features. "
-                 "Without it, Python SPARK-X selects a new panel.")
+            help="Optional audited panel directory for exact Python replay with --n_features. "
+                 "Bundled panels recompute pseudoregion genes from saved SPARK-X rank snapshots; "
+                 "without it, Python SPARK-X selects a new panel.")
 
     # ===========================
     # Parser for training SpaDOT model to obtain latent representations

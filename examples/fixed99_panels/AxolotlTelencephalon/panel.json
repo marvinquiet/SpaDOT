@@ -51,6 +51,12 @@
     "protected_sparkx_genes_per_timepoint": 100,
     "seed": 2026,
     "pca_components": 8,
-    "kmeans_n_init": 10
+    "kmeans_n_init": 10,
+    "sparkx_candidate_ranks_sha256": {
+      "t0": "239a7ecc5958f6ad4e1b16a895b58217cefa2676f05f87632644dfc866fc6a78",
+      "t1": "bbe823651d04f87d7ac658921605b1ad70f23d61d027e86f6714825a7e55e804",
+      "t2": "758932df72f8e0a28effd9d279a3b3f5325657a7e8bb3f116315637b048d4358"
+    },
+    "prefix_sha256": {}
   }
 }
