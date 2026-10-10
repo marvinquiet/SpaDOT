@@ -1,6 +1,6 @@
 import os
 import anndata
-from SpaDOT.utils import _analyze_utils # for debugging
+from SpaDOT.utils import _analyze_utils
 
 def analyze(args):
     data_dir = os.path.abspath(args.data)
@@ -15,7 +15,9 @@ def analyze(args):
     if args.n_clusters is None:
         latent = _analyze_utils.Adaptive_clustering(args, latent)
     else:
-        latent = _analyze_utils.KMeans_Clustering(latent, args.n_clusters)
+        latent = _analyze_utils.KMeans_Clustering(
+            latent, args.n_clusters, seed=getattr(args, 'seed', 2026),
+            n_init=getattr(args, 'n_init', 10))
     latent.obs['pixel_x'] = latent.obsm['spatial'][:, 0]
     latent.obs['pixel_y'] = latent.obsm['spatial'][:, 1]
     # draw domains
@@ -24,22 +26,3 @@ def analyze(args):
     _analyze_utils.OT_analysis(args, latent)
     # plot OT results
     _analyze_utils.plot_OT(args, latent)
-
-
-if __name__ == "__main__":
-    # data_dir = "./examples"
-    data_dir = "/net/mulan/home/wenjinma/projects/SpaDOT/examples"
-    # create arguments for testing
-    class Args:
-        data = os.path.join(data_dir, "latent.h5ad")
-        prefix = ""
-        n_clusters = [5, 7, 7, 6]
-        # n_clusters = None
-    args = Args()
-    # create output directory if not exists
-    if 'output_dir' not in args.__dict__:
-        args.output_dir = os.path.dirname(args.data)
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-    # analyze latent representations
-    analyze(args)

@@ -1,6 +1,5 @@
 # --- other utilitities functions ---
 import os
-# os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 import time
 import yaml
 # from importlib.resources import files
@@ -31,7 +30,6 @@ def set_seed(seed=1993):
     cudnn.benchmark = False
     g = torch.Generator()
     g.manual_seed(seed) # for stabilization
-    # torch.use_deterministic_algorithms(True)
 
 def seed_worker(worker_id=1993):
     np.random.seed(worker_id)
@@ -50,104 +48,6 @@ def load_model_config(args):
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     return config
-
-def set_spatial_coords(adata, x_col=None, y_col=None, csv_path=None, barcode_col=None, coord_cols=None):
-    """
-    Set ``adata.obsm['spatial']`` from common coordinate sources.
-
-    SpaDOT expects spatial coordinates to be stored as a 2-D NumPy array in
-    ``adata.obsm['spatial']``.  Many 10x Visium ``.h5ad`` objects produced by
-    Space Ranger or loaded with ``scanpy.read_visium`` already contain this key
-    and **no extra step is required**.  Call this helper only when the spatial
-    information is not yet in ``adata.obsm['spatial']``.
-
-    Three mutually exclusive sources are supported:
-
-    1. **Columns in** ``adata.obs`` – pass *x_col* and *y_col*.
-    2. **External CSV file** – pass *csv_path*.  The CSV must be indexed by cell
-       barcodes (or contain a barcode column specified by *barcode_col*) and
-       include two coordinate columns (optionally specified via *coord_cols*;
-       defaults to the first two numeric columns).
-    3. **Already in** ``adata.obsm['spatial']`` – nothing to do, the function
-       returns immediately without modifying the object.
-
-    Parameters
-    ----------
-    adata : anndata.AnnData
-        The AnnData object to update in-place.
-    x_col : str, optional
-        Column name in ``adata.obs`` for the x (or row) coordinate.
-    y_col : str, optional
-        Column name in ``adata.obs`` for the y (or column) coordinate.
-    csv_path : str, optional
-        Path to a CSV file containing spatial coordinates.
-    barcode_col : str, optional
-        Column name in the CSV that stores cell barcodes.  When *None*, the
-        CSV index is assumed to be the barcode.
-    coord_cols : list of str, optional
-        Two column names in the CSV to use as [x, y] coordinates.  When
-        *None*, the first two numeric columns are selected automatically.
-
-    Returns
-    -------
-    adata : anndata.AnnData
-        The same object, modified in-place.
-
-    Examples
-    --------
-    **Case 1 – 10x Visium  already has adata.obsm['spatial']**
-
-    **Case 2 – coordinates stored in** ``adata.obs``
-    >>> set_spatial_coords(adata, x_col="pixel_x", y_col="pixel_y")
-
-    **Case 3 – coordinates in an external CSV**
-    >>> set_spatial_coords(adata, csv_path="tissue_positions_list.csv",
-    ...                    coord_cols=["pixel_x", "pixel_y"])
-    """
-    # --- already present ---
-    if 'spatial' in adata.obsm and isinstance(adata.obsm['spatial'], np.ndarray) \
-            and adata.obsm['spatial'].ndim == 2:
-        return adata
-
-    # --- from obs columns ---
-    if x_col is not None and y_col is not None:
-        if x_col not in adata.obs.columns:
-            raise ValueError(f"Column '{x_col}' not found in adata.obs.")
-        if y_col not in adata.obs.columns:
-            raise ValueError(f"Column '{y_col}' not found in adata.obs.")
-        adata.obsm['spatial'] = adata.obs[[x_col, y_col]].values.astype(float)
-        return adata
-
-    # --- from an external CSV ---
-    if csv_path is not None:
-        coords_df = pd.read_csv(csv_path, index_col=None if barcode_col else 0)
-        if barcode_col is not None:
-            if barcode_col not in coords_df.columns:
-                raise ValueError(f"Barcode column '{barcode_col}' not found in '{csv_path}'.")
-            coords_df = coords_df.set_index(barcode_col)
-        if coord_cols is not None:
-            if len(coord_cols) != 2:
-                raise ValueError("'coord_cols' must contain exactly two column names.")
-            coords_df = coords_df[coord_cols]
-        else:
-            numeric_cols = coords_df.select_dtypes(include=[np.number]).columns.tolist()
-            if len(numeric_cols) < 2:
-                raise ValueError("Could not find two numeric columns in the CSV. "
-                                 "Specify them with 'coord_cols'.")
-            coords_df = coords_df[numeric_cols[:2]]
-
-        # align to adata barcodes
-        missing = set(adata.obs_names) - set(coords_df.index)
-        if missing:
-            raise ValueError(f"{len(missing)} barcodes in adata are missing from the CSV.")
-        adata.obsm['spatial'] = coords_df.loc[adata.obs_names].values.astype(float)
-        return adata
-
-    raise ValueError(
-        "adata.obsm['spatial'] is not set. Provide either 'x_col'/'y_col', "
-        "or 'csv_path' to supply spatial coordinates."
-    )
-
 
 def _Cal_Spatial_Net(adata, k_cutoff=None, max_neigh=30):
     """

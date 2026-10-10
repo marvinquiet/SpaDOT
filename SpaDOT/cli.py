@@ -26,6 +26,13 @@ def parse_args():
     preprocess_parser.add_argument('--feature_selection', dest='feature_selection',
             default=True, action="store_true",
             help="Whether performing feature selection. If not specified, feature selection option is chosen.")
+    preprocess_parser.add_argument('--no-feature-selection', dest='feature_selection',
+            action='store_false', help="Skip feature selection and use all genes.")
+    preprocess_parser.add_argument('--n_features', type=str,
+            help="Comma-separated SVG counts in natural timepoint order, e.g. 500,500,1000. "
+                 "Uses Python SPARK-X and 12 KMeans pseudoregions.")
+    preprocess_parser.add_argument('--feature_panel', type=str,
+            help="Optional local panel directory for exact replay with --n_features.")
 
     # ===========================
     # Parser for training SpaDOT model to obtain latent representations
@@ -68,6 +75,10 @@ def parse_args():
     analyze_parser.add_argument('--n_clusters', dest='n_clusters',
                                 type=lambda s: [int(item) for item in s.split(',')],
                                 help="A comma-separated list of integers representing the number of clusters for analysis.")
+    analyze_parser.add_argument('--seed', type=int, default=2026,
+                                help="Final KMeans random seed. Default: 2026.")
+    analyze_parser.add_argument('--n_init', type=int, default=10,
+                                help="Final KMeans initializations. Default: 10.")
     args = parser.parse_args()
     print("User input arguments: ", args)
     return args

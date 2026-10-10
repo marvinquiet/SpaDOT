@@ -1,0 +1,2 @@
+include docs/feature_selection.md
+recursive-include tests *.py

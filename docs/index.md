@@ -11,8 +11,6 @@ Siyu Hou, Department of Biostatistics, University of Michigan
 
 **Latest revision:** 09/30/2025
 
-**Notice:** This version is currently under development. The final release will be made available upon paper acceptance.
-
 # Table of Contents
 - [Introduction](#introduction)
 - [Installation](#installation)
@@ -110,37 +108,9 @@ optional arguments:
 
 ---
 
-### Input data format
-
-SpaDOT requires an [AnnData](https://anndata.readthedocs.io) object with two mandatory fields:
-
-| Field | Description |
-|-------|-------------|
-| `adata.obs['timepoint']` | Integer time-point label (0, 1, 2, …) for each cell/spot. |
-| `adata.obsm['spatial']` | 2-D NumPy array of shape *(n_cells × 2)* containing the spatial coordinates (e.g., pixel x/y). |
-
-**10x Visium / Space Ranger objects already include** `adata.obsm['spatial']` when loaded with `scanpy.read_visium`, so no extra step is needed for those files.
-
-If your `.h5ad` object does not yet have `adata.obsm['spatial']`, use the built-in helper `SpaDOT.set_spatial_coords`:
-
-```python
-import SpaDOT
-
-# Case 1: coordinates stored in adata.obs columns
-SpaDOT.set_spatial_coords(adata, x_col="pixel_x", y_col="pixel_y")
-
-# Case 2: coordinates in an external CSV file (index = barcodes)
-SpaDOT.set_spatial_coords(adata, csv_path="tissue_positions_list.csv",
-                          coord_cols=["pixel_x", "pixel_y"])
-```
-
-The helper modifies `adata` in-place and returns the object.
-
----
-
 # Example 1: developing chicken heart
 
-The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. In this dataset, SpaDOT accurately identifies valvulogenesis - a valve splits into artrioventricular valve and semilunar valve at Day 14. For your convenience, you can download the processed data [here](https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&st=t4712tqn&dl=0). If you would like to see the preprocessing steps, please expand the section below:
+The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. In this dataset, SpaDOT accurately identifies valvulogenesis - a valve splits into artrioventricular valve and semilunar valve at Day 14. For your convenience, you can download the processed data [here](https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0). If you would like to see the preprocessing steps, please expand the section below:
 
 <details>
 <summary>More details on Chicken Heart data</summary>
@@ -167,7 +137,7 @@ The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is me
 </ul>
 
 
-<p>Third, we used the script <code>process_ChickenHeart.py</code> provided <a href="https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py">here</a> to preprocess the data by integrating them into one anndata with <code>timepoint</code> in anndata observations (obs) as one-hot encoder indicating four time points: 0, 1, 2 and 3 indicate Day 4, Day 7, Day 10 and Day 14, respectively. Because the original GEO files did not ship with a Space Ranger output folder, the pixel coordinates were read from the separate <code>tissue_positions_list.csv</code> files and stored as a 2-D NumPy array under <code>adata.obsm['spatial']</code> — the format SpaDOT reads internally. For datasets loaded with <code>scanpy.read_visium</code> (which populates <code>adata.obsm['spatial']</code> automatically), this step is not necessary. If your object stores coordinates elsewhere, use the <code>SpaDOT.set_spatial_coords</code> helper described in the <a href="#input-data-format">Input data format</a> section above.</p>
+<p>Third, we used the script <code>process_ChickenHeart.py</code> provided <a href="https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py">here</a> to preprocess the data by integrating them into one anndata with <code>timepoint</code> in anndata observations (obs) as one-hot encoder indicating four time points: 0, 1, 2 and 3 indicate Day 4, Day 7, Day 10 and Day 14, respectively. We have also put the spatial coordinates with keyword <code>spatial</code> as a numpy array inside anndata observation metadata (obsm).</p>
 
 
 <p>After running the <code>process_ChickenHeart.py</code>, we will obtain the file <code>ChickenHeart.h5ad</code>. For your convenience, you can download the processed data <a href="https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0">here</a>. </p>
@@ -186,10 +156,10 @@ SpaDOT preprocess --data ./ChickenHeart.h5ad --output_dir ./ChickenHeart_output
 
 <summary>More about no feature selection</summary>
 
-<p>If you prefer not to perform spatially variable gene selection, you can add the option <code>--feature_selection False</code> to use all genes in the dataset. However, we still <strong>recommend performing feature selection, as it generally leads to better results and faster computation</strong>.</p>
+<p>If you prefer not to perform spatially variable gene selection, add <code>--no-feature-selection</code> to use all genes in the dataset. To select an explicit number of SVGs for each timepoint using Python SPARK-X and pseudoregions, pass <code>--n_features 500,500,1000</code> (one number per timepoint in natural label order). See the <a href="feature_selection/">feature-selection guide</a> for the example gene counts and Python selection method.</p>
 
 <code>
-SpaDOT preprocess --data ./ChickenHeart.h5ad --feature_selection False --output_dir ./ChickenHeart_output
+SpaDOT preprocess --data ./ChickenHeart.h5ad --no-feature-selection --output_dir ./ChickenHeart_output
 </code>
 
 </details>
