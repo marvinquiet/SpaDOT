@@ -84,6 +84,21 @@ feature selection in Python.
 
 ## Installation
 
+For a collaborator using [uv](https://docs.astral.sh/uv/), clone this
+repository and create a Python 3.9 environment in the checkout:
+
+```shell
+git clone https://github.com/marvinquiet/SpaDOT.git
+cd SpaDOT
+uv venv --python 3.9
+uv pip install -e .
+./.venv/bin/SpaDOT --help
+```
+
+The environment stays in `.venv` and is not committed. On Windows, use
+`.venv\Scripts\SpaDOT.exe --help` for the last command. The three notebooks
+in `examples/` use this same checkout and environment.
+
 The most convenient way is to install with `pip`.
 
 ```shell
