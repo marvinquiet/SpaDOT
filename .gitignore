@@ -5,6 +5,7 @@ __pycache__/
 *.h5ad
 examples/fixed99_runs/
 examples/runs/
+examples/*_output/
 # model parameters
 *.pth 
 # test folder
