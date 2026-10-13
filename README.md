@@ -7,7 +7,7 @@ Software for the manuscript "Optimal Transport Modeling Uncovers Spatial Domain 
 
 SpaDOT is an open-source computational method for identifying spatial domains and inferring their temporal dynamics across time points for spatiotemporal transcriptomics studies. Detailed documentation and tutorials are available at: https://marvinquiet.github.io/SpaDOT/.
 
-### Fixed 99-epoch training recipe
+### Example training configuration
 
 The bundled `SpaDOT/config.yaml` starts at epoch 1 and executes while
 `epoch < 100`, for exactly 99 optimizer updates (epochs 1 through 99).
@@ -38,19 +38,17 @@ The evaluated input panels were:
 
 The counts above are dataset-specific exploratory presets. The spot count
 alone did not determine gene quota across these datasets. See
-`docs/fixed99_feature_panels.md` in the source repository for the selection
+`docs/example_workflow.md` in the source repository for the selection
 and preprocessing recipe. `SpaDOT preprocess --n_features 500,500,1000`
-uses the bundled Python SPARK-X and pseudoregion selection, with one quota
-per timepoint. Add `--feature_panel` to recompute the historical pseudoregion
-lists in Python from hash-checked SPARK-X rank snapshots and verify an exact
-match. The executable notebooks are
+uses Python SPARK-X and pseudoregion selection, with one quota per timepoint.
+The optional `--selection_plan` supplies numeric candidate-pool and
+selection-stage settings for reproducible examples directly from raw counts.
+It contains no saved gene lists or rankings. The executable notebooks are
 [`ChickenHeart.ipynb`](examples/ChickenHeart.ipynb),
 [`AxolotlTelencephalon.ipynb`](examples/AxolotlTelencephalon.ipynb), and
-[`MouseEmbryo.ipynb`](examples/MouseEmbryo.ipynb). Each uses the audited
-frozen lists in `examples/fixed99_panels/`. The R-free selection procedure is
-integrated into `SpaDOT/utils/_preprocess_utils.py`. A fresh Python panel can
-differ materially from the saved evaluated lists and need not reproduce their
-spatial results; see the panel documentation.
+[`MouseEmbryo.ipynb`](examples/MouseEmbryo.ipynb). Their small numeric
+selection plans are beside the notebooks. The R-free selection procedure is
+integrated into `SpaDOT/utils/_preprocess_utils.py`.
 
 **Table of Contents**
 - [System Requirements](#system-requirements)
@@ -81,11 +79,23 @@ SpaDOT requires the following:
 
 **Note:** If using GPU resources, you might also need to install the CUDA Toolkit and NVIDIA cuDNN libraries. Detailed setup instructions can be found [here](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/). Please make sure to install a compatible version for PyTorch.
 
-R is not required at runtime. `SpaDOT preprocess --n_features` selects spatially variable genes using the bundled Python SPARK-X implementation and pseudoregion ranking. Use `--feature_panel` to regenerate and verify the evaluated example lists from their archived candidate ranks; fresh Python SPARK-X rankings can differ from the historical R rankings.
+R is not required at runtime. `SpaDOT preprocess --n_features` selects
+spatially variable genes using Python SPARK-X and pseudoregion ranking. The
+three examples pass `--selection_plan` to reproduce their selected genes
+from raw counts with fixed numeric settings.
 
 ## Installation
 
 The most convenient way is to install with `pip`.
+
+To test a supplied SpaDOT 1.0.5 wheel before publication, install that file
+and run one of the three notebooks in `examples/` from the `examples/`
+directory. Each notebook checks the installed version and writes into its
+own new run directory.
+
+```shell
+python -m pip install /path/to/spadot-1.0.5-py3-none-any.whl
+```
 
 ```shell
 pip install SpaDOT

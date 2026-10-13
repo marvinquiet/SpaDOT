@@ -1,5 +1,6 @@
 # --- other utilitities functions ---
 import os
+import math
 import time
 import yaml
 # from importlib.resources import files
@@ -13,7 +14,6 @@ import random
 from torch.backends import cudnn
 
 import warnings
-from scipy.stats import cauchy
 from multiprocessing import Pool
 from scipy.stats import ncx2
 from chi2comb import chi2comb_cdf, ChiSquared # implementation of davies function in r: https://www.rdocumentation.org/packages/CompQuadForm/versions/1.4.4/topics/davies
@@ -280,7 +280,11 @@ def _sparkx_pval(igene,lambda_G,lambda_K,allstat):
         chi2s = [ChiSquared(Zsort[i], ncents[i], dofs[i]) for i in range(len(Zsort))]
         result, errno, info = chi2comb_cdf(q, chi2s, gcoef)
         pout = 1 - result
-        if result <= 0 or result >= 1.0:
+        # SPARK 1.1.1 retains a Davies upper-tail p-value of exactly 1.
+        # Replacing it with Liu changes ACAT's answer for those genes.
+        # chi2comb uses a negative CDF as an error sentinel; R's Davies
+        # routine does not return that sentinel as a probability.
+        if pout <= 0 or result < 0:
             pout = _liu(allstat[igene], Zsort)
     except Exception:
         pout = _liu(allstat[igene], Zsort)
@@ -382,17 +386,29 @@ def _ACAT(pvals, weights=None):
             raise ValueError("All the weights must be positive!")
         weights = weights / np.sum(weights)
     # handle very small p-values
+    pvals = np.asarray(pvals, dtype=np.float64)
     is_small = pvals < 1e-16
     if not np.any(is_small):
-        cct_stat = np.sum(weights * np.tan((0.5 - pvals) * np.pi))
+        terms = weights * np.tan((0.5 - pvals) * np.pi)
+        cct_stat = math.fsum(terms)
     else:
-        cct_stat = np.sum(weights[is_small] / (np.pi * pvals[is_small]))
-        cct_stat += np.sum(weights[~is_small] * np.tan((0.5 - pvals[~is_small]) * np.pi))
+        # Preserve R's division order: (weight / p-value) / pi.
+        small = math.fsum((weights[is_small] / pvals[is_small]) / np.pi)
+        other = math.fsum(weights[~is_small] * np.tan((0.5 - pvals[~is_small]) * np.pi))
+        cct_stat = small + other
     # compute p-value
     if cct_stat > 1e15:
         pval = 1 / (cct_stat * np.pi)
     else:
-        pval = 1 - cauchy.cdf(cct_stat)
+        # R's pcauchy uses 0.5 - atan(1/x)/pi + 0.5 for x > 1.
+        # That final half-plus-half rounding matters for tiny ACAT p-values.
+        if cct_stat > 1:
+            cdf = 0.5 - math.atan(1 / cct_stat) / math.pi + 0.5
+        elif cct_stat < -1:
+            cdf = -math.atan(1 / cct_stat) / math.pi
+        else:
+            cdf = 0.5 + math.atan(cct_stat) / math.pi
+        pval = 1 - cdf
     return pval
 
 def _transloc_func_vec(coord, lker, transfunc="gaussian"):

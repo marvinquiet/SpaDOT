@@ -51,6 +51,37 @@ def _feature_counts(spec, timepoints):
     return dict(zip(timepoints, counts))
 
 
+def _selection_plan(path, timepoints, quotas):
+    """Read numeric selection stages; no genes, ranks, or labels are loaded."""
+    plan = json.loads(Path(path).read_text())
+    if set(plan) != {'timepoints'} or set(plan['timepoints']) != set(timepoints):
+        raise ValueError('--selection_plan needs exactly the observed timepoints')
+    parsed = {}
+    for tp in timepoints:
+        spec = plan['timepoints'][tp]
+        if set(spec) != {'pca_pool', 'stages'}:
+            raise ValueError(f'{tp}: expected pca_pool and stages')
+        pca_pool = spec['pca_pool']
+        stages = spec['stages']
+        if (type(pca_pool) is not int or pca_pool < 8 or
+                not isinstance(stages, list) or not stages):
+            raise ValueError(f'{tp}: invalid PCA pool or selection stages')
+        previous = 0
+        for stage in stages:
+            if (not isinstance(stage, list) or len(stage) != 2 or
+                    any(type(number) is not int for number in stage)):
+                raise ValueError(f'{tp}: each stage needs [quota, candidate_pool]')
+            count, pool = stage
+            if (count < 100 or count <= previous or count > quotas[tp] or
+                    pool < max(count, pca_pool)):
+                raise ValueError(f'{tp}: invalid or nonascending selection stage')
+            previous = count
+        if previous != quotas[tp]:
+            raise ValueError(f'{tp}: final stage must equal --n_features quota')
+        parsed[tp] = {'pca_pool': pca_pool, 'stages': stages}
+    return parsed
+
+
 def _sha256(path):
     digest = hashlib.sha256()
     with Path(path).open('rb') as stream:
@@ -171,7 +202,7 @@ def _select_pseudoregion_genes(raw_part, retained, candidates, coordinates,
     return chosen, sizes
 
 
-def _python_pseudoregion_panel(adata, timepoints, quotas):
+def _python_pseudoregion_panel(adata, timepoints, quotas, plan=None):
     """Select SVGs from raw counts using the bundled Python SPARK-X."""
     retained = _retained_genes(adata)
     selected, detail = {}, {}
@@ -185,111 +216,30 @@ def _python_pseudoregion_panel(adata, timepoints, quotas):
         table = table.loc[table.adjustedPval <= 0.05].sort_values(
             ['adjustedPval', 'combinedPval', 'gene'], kind='mergesort')
         quota = quotas[tp]
-        if len(table) < quota:
-            raise ValueError(f'Timepoint {tp} has only {len(table)} FDR-significant '
-                             f'SVGs, fewer than the requested {quota}')
-        pool_size = min(len(table), max(1100, quota + min(quota, 1100)))
-        candidates = table.gene.iloc[:pool_size].tolist()
-        chosen, sizes = _select_pseudoregion_genes(
-            part, retained, candidates, coordinates, quota,
-            pca_pool=min(1100, len(candidates)))
+        if plan is None:
+            pool_size = min(len(table), max(1100, quota + min(quota, 1100)))
+            stages = [[quota, pool_size]]
+            pca_pool = min(1100, pool_size)
+        else:
+            stages = plan[tp]['stages']
+            pca_pool = plan[tp]['pca_pool']
+        chosen = None
+        stage_details = []
+        for count, pool_size in stages:
+            if len(table) < pool_size:
+                raise ValueError(f'{tp}: only {len(table)} FDR-significant SVGs; '
+                                 f'stage requires {pool_size}')
+            candidates = table.gene.iloc[:pool_size].tolist()
+            chosen, sizes = _select_pseudoregion_genes(
+                part, retained, candidates, coordinates, count,
+                pca_pool=pca_pool, prefix=chosen)
+            stage_details.append({'quota': count, 'candidate_pool': pool_size,
+                                  'pseudoregion_spot_counts': sizes})
         selected[tp] = chosen
         detail[tp] = {'fdr_significant': len(table),
-                      'candidate_pool': pool_size,
-                      'pseudoregion_spot_counts': sizes}
+                      'stages': stage_details}
     return selected, {'method': 'python_sparkx_pseudoregion',
                       'selection_details': detail}
-
-
-def _frozen_panel(adata, args, timepoints, quotas):
-    """Regenerate audited example SVGs in Python, then check saved lists."""
-    folder = Path(args.feature_panel)
-    panel = json.loads((folder / 'panel.json').read_text())
-    panel_timepoints = list(panel['selected_genes_per_timepoint'])
-    if (len(panel_timepoints) != len(timepoints) or
-            list(panel['selected_genes_per_timepoint'].values()) !=
-            list(quotas.values())):
-        raise ValueError('--n_features does not match the frozen panel quotas')
-    panel_quotas = dict(zip(panel_timepoints, quotas.values()))
-    if _sha256(args.data) != panel['raw_sha256']:
-        raise ValueError('Raw input does not match the frozen panel hash')
-    if _sha256(folder / 'spots.tsv') != panel['spot_metadata_sha256']:
-        raise ValueError('Frozen panel spot metadata hash mismatch')
-    spots = pd.read_csv(folder / 'spots.tsv', sep='\t',
-                        float_precision='round_trip',
-                        dtype={'spot_id': str, 'timepoint': str})
-    if (not spots.spot_id.is_unique or
-            spots.timepoint.value_counts().to_dict() != panel['spots_per_timepoint'] or
-            not set(spots.spot_id).issubset(adata.obs_names)):
-        raise ValueError('Frozen panel spot order or timepoints differ from the raw input')
-    genes_file = folder / 'union_genes.txt'
-    if _sha256(genes_file) != panel['union_genes_sha256']:
-        raise ValueError('Frozen panel union gene hash mismatch')
-    genes = genes_file.read_text().splitlines()
-    saved = {tp: (folder / f'genes_{tp}.txt').read_text().splitlines()
-             for tp in panel_timepoints}
-    params = panel.get('selection_parameters', {})
-    rank_hashes = params.get('sparkx_candidate_ranks_sha256')
-    if rank_hashes is None and 'sparkx_table_sha256' in params:
-        raise ValueError('Historical panel is missing its candidate rank hashes')
-    selected = {}
-    details = {}
-    if rank_hashes is not None:
-        retained = _retained_genes(adata)
-        retained_hash = hashlib.sha256(
-            ''.join(gene + '\n' for gene in retained).encode()).hexdigest()
-        if (len(retained) != panel['retained_genes'] or
-                retained_hash != panel['retained_genes_sha256']):
-            raise ValueError('Historical mitochondrial/ribosomal filter mismatch')
-        if set(rank_hashes) != set(panel_timepoints):
-            raise ValueError('Historical candidate ranks omit a timepoint')
-        for tp in panel_timepoints:
-            rank_file = folder / f'sparkx_candidates_{tp}.txt'
-            if _sha256(rank_file) != rank_hashes[tp]:
-                raise ValueError(f'Historical SPARK-X rank hash mismatch: {tp}')
-            candidates = rank_file.read_text().splitlines()
-            if (len(candidates) != params['candidate_pool_per_timepoint'][tp] or
-                    not set(candidates).issubset(retained)):
-                raise ValueError(f'Historical candidate genes differ: {tp}')
-            prefix_file = folder / f'prefix_{tp}.txt'
-            if tp in params.get('prefix_sha256', {}):
-                if _sha256(prefix_file) != params['prefix_sha256'][tp]:
-                    raise ValueError(f'Historical prefix hash mismatch: {tp}')
-                prefix = prefix_file.read_text().splitlines()
-            else:
-                prefix = None
-            tp_spots = spots.loc[spots.timepoint == tp]
-            part = adata[tp_spots.spot_id.tolist()].copy()
-            coordinates = tp_spots[['spatial_x', 'spatial_y']].to_numpy(
-                dtype=np.float64)
-            chosen, sizes = _select_pseudoregion_genes(
-                part, retained, candidates, coordinates, panel_quotas[tp],
-                pca_pool=params['pca_pool_per_timepoint'][tp], prefix=prefix)
-            if chosen != saved[tp]:
-                raise ValueError(f'Python regeneration differs from saved SVGs: {tp}')
-            selected[tp] = chosen
-            details[tp] = {'candidate_pool': len(candidates),
-                           'prefix_genes': len(prefix) if prefix else 0,
-                           'pseudoregion_spot_counts': sizes}
-    else:
-        selected = saved
-    if (any(len(selected[tp]) != panel['selected_genes_per_timepoint'][tp] or
-            len(selected[tp]) != len(set(selected[tp]))
-            for tp in panel_timepoints) or
-            genes != sorted(set().union(*(set(names) for names in selected.values()))) or
-            not set(genes).issubset(adata.var_names)):
-        raise ValueError('Frozen panel gene lists are inconsistent')
-    adata = adata[spots.spot_id.tolist(), genes].copy()
-    adata.obs['timepoint'] = spots.timepoint.to_numpy()
-    adata.obsm['spatial'] = spots[['spatial_x', 'spatial_y']].to_numpy(dtype=np.float64)
-    return (adata, selected,
-            {'method': ('python_replay_of_historical_ranks' if rank_hashes
-                        else 'frozen_panel'),
-             'candidate_source': ('archived_R_SPARKX_1.1.1_rank_order'
-                                  if rank_hashes else None),
-             'selection_details': details,
-             'panel_sha256': _sha256(folder / 'panel.json')},
-            panel_timepoints)
 
 
 def _preprocess_with_feature_counts(args, adata):
@@ -307,16 +257,15 @@ def _preprocess_with_feature_counts(args, adata):
     quotas = _feature_counts(args.n_features, timepoints)
     if any(count > adata.n_vars for count in quotas.values()):
         raise ValueError('--n_features cannot exceed the raw gene count')
-    if getattr(args, 'feature_panel', None):
-        adata, selected, metadata, panel_timepoints = _frozen_panel(
-            adata, args, timepoints, quotas)
-        quotas = dict(zip(panel_timepoints, quotas.values()))
-        timepoints = panel_timepoints
-    else:
-        selected, metadata = _python_pseudoregion_panel(adata, timepoints, quotas)
-        genes = sorted(set().union(*(set(names) for names in selected.values())))
-        adata = adata[:, genes].copy()
+    plan_file = getattr(args, 'selection_plan', None)
+    plan = (_selection_plan(plan_file, timepoints, quotas)
+            if plan_file else None)
+    selected, metadata = _python_pseudoregion_panel(
+        adata, timepoints, quotas, plan=plan)
+    if plan_file:
+        metadata['selection_plan_sha256'] = _sha256(plan_file)
     genes = sorted(set().union(*(set(names) for names in selected.values())))
+    adata = adata[:, genes].copy()
     output = Path(args.output_dir)
     for tp in timepoints:
         (output / f'SVG_genes_{tp}.txt').write_text(
@@ -334,7 +283,13 @@ def _preprocess_with_feature_counts(args, adata):
         sc.pp.log1p(part)
         sc.pp.scale(part)
         parts.append(part)
-    result = anndata.concat(parts, merge='same')[adata.obs_names.tolist(), genes].copy()
+    result = anndata.concat(parts, merge='same')[:, genes].copy()
+    # Preserve an already-grouped input's spot order. For interleaved slices,
+    # keep the concatenated timepoint blocks, preserving order within each
+    # slice; the model samples inducing points by row index.
+    labels = adata.obs['timepoint']
+    if labels[labels.ne(labels.shift())].is_unique:
+        result = result[adata.obs_names.tolist(), :].copy()
     if not np.isfinite(result.X).all():
         raise ValueError('Preprocessed expression contains non-finite values')
     return result
@@ -350,8 +305,8 @@ def preprocess_adata(args, adata):
     '''
     if getattr(args, 'n_features', None) is not None:
         return _preprocess_with_feature_counts(args, adata)
-    if getattr(args, 'feature_panel', None):
-        raise ValueError('--feature_panel requires --n_features')
+    if getattr(args, 'selection_plan', None):
+        raise ValueError('--selection_plan requires --n_features')
     tps = adata.obs['timepoint'].unique()
     if args.feature_selection:
         _run_sparkx(args, adata, tps, option='mixture', num_cores=4)

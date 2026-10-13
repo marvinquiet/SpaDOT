@@ -1,3 +1,8 @@
-include docs/fixed99_feature_panels.md
-include tests/test_fixed_kl_cycle.py
-include tests/test_python_ot.py
+include docs/example_workflow.md
+include examples/ChickenHeart.ipynb
+include examples/AxolotlTelencephalon.ipynb
+include examples/MouseEmbryo.ipynb
+include examples/ChickenHeart_selection.json
+include examples/AxolotlTelencephalon_selection.json
+include examples/MouseEmbryo_selection.json
+recursive-include tests *.py

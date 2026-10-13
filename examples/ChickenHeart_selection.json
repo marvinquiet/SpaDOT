@@ -1,0 +1,8 @@
+{
+  "timepoints": {
+    "t0": {"pca_pool": 1100, "stages": [[500, 1100]]},
+    "t1": {"pca_pool": 1100, "stages": [[500, 1100]]},
+    "t2": {"pca_pool": 1100, "stages": [[1000, 1100]]},
+    "t3": {"pca_pool": 1100, "stages": [[1000, 1100]]}
+  }
+}

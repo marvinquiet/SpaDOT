@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.h5ad
 examples/fixed99_runs/
+examples/runs/
 # model parameters
 *.pth 
 # test folder
@@ -180,3 +181,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Historical reference lists stay local; examples derive genes from raw data.
+examples/fixed99_panels/

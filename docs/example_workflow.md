@@ -1,6 +1,6 @@
-# Feature panels for the fixed 99-epoch SpaDOT recipe
+# Raw-data feature selection for the three SpaDOT examples
 
-The following are the frozen panels used to evaluate the training recipe.
+The following are the panels used to evaluate the example training configuration.
 Counts refer to genes selected **per timepoint**; the input matrix contains
 the sorted union across all timepoints. Gene selection excluded annotation
 labels and marker identities. The choice among panel rules followed repeated
@@ -38,43 +38,31 @@ Use the table as dataset-specific presets, not as a general law.
 SPARK-X and pseudoregion selection. The counts must match the number of
 observed timepoints and are assigned in natural timepoint-label order.
 Each count must be at least 100. From the FDR-significant genes, the Python
-selector uses a candidate pool of
+selector ordinarily uses a candidate pool of
 `min(significant_count, max(1100, quota + min(quota, 1100)))` and the top
 `min(1100, candidate_pool)` candidates for PCA. It then protects the top
 100 SPARK-X genes and fills the remaining quota by balanced pseudoregion
 contrasts. If `--n_features` is omitted, the earlier Python
 SCTransform/Louvain selector remains available for compatibility.
-For **exact reproduction** of a reported input, also pass its
-`--feature_panel examples/fixed99_panels/<dataset>` directory. The bundled
-panel stores the historical R SPARK-X ranked candidate pools as immutable
-text snapshots, not as executable R code. Python checks their hashes,
-recomputes the KMeans pseudoregion contrasts and per-timepoint lists, and
-requires an exact match with the saved genes before preprocessing. The
-original R tables are needed only by the one-time Python exporter that made
-these snapshots. No R installation or R process is needed at runtime. The
-three notebooks use this exact mode.
-
-The Python SPARK-X p-values were close to the original R values in an isolated
-numerical check. Substituting only those p-values into the historical
-selection script regenerated seven of ten per-timepoint lists exactly; the
-other three shared 446/500 Chicken Heart t1, 495/500 Axolotl t0, and
-2,871/3,000 Mouse Embryo t0 genes. This check did **not** test the complete
-`SpaDOT preprocess --n_features` path, which also differs in candidate-pool
-and historical-prefix choices. Its fresh panels had substantially lower
-overlap with the frozen lists. In matched 99-epoch seed-2026 trials, global
-mean ARI was .521/.537/.559 for Chicken Heart/Axolotl/Mouse Embryo versus
-.526/.611/.594 for the frozen panels. The fresh Axolotl panel merged MP and
-DP at t2; the fresh Mouse panel merged Heart and Liver at t0 and t1. These
-development results do not establish generalization. A fresh Python
-selection is a new input panel; use `--feature_panel` to reproduce evaluated
-results.
+The three notebooks instead pass small `--selection_plan` JSON files
+containing only a PCA pool and ordered `[quota, candidate_pool]` stages for
+each timepoint. The stages preserve genes selected earlier as a prefix.
+The corrected Python SPARK-X calculation and these numeric plans regenerated
+all ten reported per-timepoint lists exactly from the corresponding raw
+H5AD files, without reading archived R ranks or gene lists during
+selection. The selected union sizes are shown above. Other inputs or
+selection settings may give different genes and spatial results.
+When a raw file interleaves timepoints, preprocessing groups its spots by
+timepoint while keeping their order within each slice. An already grouped
+file retains its original spot order. Training samples inducing points by
+row index, so this ordering is part of reproducible model input.
 
 ## Training and readout
 
 Use `epoch_start: 1`, `epoch_stop_exclusive: 100`,
 `kl_cycle_epochs: 30`, seed 2026, the built-in NumPy OT solver,
 and the provided model architecture.
-The release candidate includes only this Python/NumPy OT backend. It has no
+SpaDOT 1.0.5 includes only this Python/NumPy OT backend. It has no
 platform-specific `libot.so` dependency.
 Use the executed epoch-99 latent for readout. For fixed region counts,
 `SpaDOT analyze --n_clusters ... --seed 2026 --n_init 10` uses KMeans++
@@ -83,8 +71,9 @@ Chicken Heart 5/7/7/6, Axolotl 6/7/8, and Mouse Embryo 5/5/5; confirm K from
 the frozen run manifest before reproducing an ARI.
 
 The historic 99-update experiments retained a 300-update training horizon
-only to get a 30-epoch KL period. This release separates the cycle period
-from the actual epoch bounds.
-The new package should be benchmarked against the three frozen inputs before
-claiming numerical equivalence, including the spatial Heart/Liver and MP/DP
-checks. Matching the KL schedule alone does not prove an identical run.
+only to get a 30-epoch KL period. Version 1.0.5 separates the cycle period
+from the actual epoch bounds. In a fresh raw-data check, Mouse Embryo and
+Axolotl reproduced the saved 99-epoch loss and latent arrays exactly;
+Chicken Heart reproduced its gene panel and expression matrix exactly, with
+a small ARI difference because the raw coordinates use another axis
+orientation. These checks use one seed and do not establish generalization.

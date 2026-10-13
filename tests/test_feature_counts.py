@@ -8,8 +8,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from SpaDOT.utils import _preprocess_utils as prep
 from SpaDOT.utils._preprocess_utils import (
-    _feature_counts, _ordered_timepoints, _preprocess_with_feature_counts, _sha256,
+    _feature_counts, _ordered_timepoints, _preprocess_with_feature_counts,
+    _selection_plan,
 )
 
 
@@ -38,61 +40,47 @@ def test_oversized_quota_rejected_before_sparkx(tmp_path):
     raw = ad.AnnData(X=np.ones((3, 200), dtype=np.int64),
                      obs=pd.DataFrame({'timepoint': ['t2', 't0', 't1']},
                                       index=['a', 'b', 'c']))
-    args = Namespace(feature_selection=True, feature_panel=None,
+    args = Namespace(feature_selection=True, selection_plan=None,
                      n_features='500,500,1000', output_dir=str(tmp_path))
     with pytest.raises(ValueError, match='raw gene count'):
         _preprocess_with_feature_counts(args, raw)
 
 
-def test_frozen_panel_can_use_different_validated_timepoint_labels(tmp_path):
+def test_numeric_plan_requires_matching_timepoints_and_final_quotas(tmp_path):
+    path = tmp_path / 'plan.json'
+    path.write_text(json.dumps({'timepoints': {
+        't0': {'pca_pool': 1100, 'stages': [[100, 1200]]},
+        't1': {'pca_pool': 1100, 'stages': [[100, 1200]]},
+    }}))
+    assert _selection_plan(path, ['t0', 't1'], {'t0': 100, 't1': 100})['t0'][
+        'stages'] == [[100, 1200]]
+    with pytest.raises(ValueError, match='observed timepoints'):
+        _selection_plan(path, ['t0', 't2'], {'t0': 100, 't2': 100})
+    with pytest.raises(ValueError, match='final stage'):
+        _selection_plan(path, ['t0', 't1'], {'t0': 100, 't1': 200})
+
+
+@pytest.mark.parametrize('labels,expected', [
+    (['t0', 't1', 't0', 't1'], ['a', 'c', 'b', 'd']),
+    (['t0', 't0', 't1', 't1'], ['a', 'b', 'c', 'd']),
+])
+def test_preprocess_preserves_within_slice_order(tmp_path, monkeypatch,
+                                                 labels, expected):
     names = [f'g{i:03d}' for i in range(100)]
     raw = ad.AnnData(
         X=(np.arange(400).reshape(4, 100) % 7 + 1).astype(np.int64),
-        obs=pd.DataFrame({'timepoint': ['t0', 't0', 't1', 't1']},
-                         index=['a', 'b', 'c', 'd']),
+        obs=pd.DataFrame({'timepoint': labels}, index=['a', 'b', 'c', 'd']),
     )
     raw.var_names = names
     raw.obsm['spatial'] = np.arange(8, dtype=float).reshape(4, 2)
-    raw_file = tmp_path / 'raw.h5ad'
-    raw.write_h5ad(raw_file)
-    panel_dir = tmp_path / 'panel'
-    panel_dir.mkdir()
-    spots = pd.DataFrame({
-        'spot_id': ['b', 'a', 'd', 'c'], 'timepoint': ['0', '0', '1', '1'],
-        'spatial_x': [2., 0., 6., 4.], 'spatial_y': [3., 1., 7., 5.],
-    })
-    spots_file = panel_dir / 'spots.tsv'
-    spots.to_csv(spots_file, sep='\t', index=False)
-    union = panel_dir / 'union_genes.txt'
-    union.write_text(''.join(gene + '\n' for gene in names))
-    for tp in ['0', '1']:
-        (panel_dir / f'genes_{tp}.txt').write_bytes(union.read_bytes())
-    (panel_dir / 'panel.json').write_text(json.dumps({
-        'raw_sha256': _sha256(raw_file),
-        'selected_genes_per_timepoint': {'0': 100, '1': 100},
-        'spots_per_timepoint': {'0': 2, '1': 2},
-        'spot_metadata_sha256': _sha256(spots_file),
-        'union_genes_sha256': _sha256(union),
-    }))
-    args = Namespace(data=str(raw_file), feature_selection=True,
-                     feature_panel=str(panel_dir), n_features='100,100',
-                     output_dir=str(tmp_path))
+    monkeypatch.setattr(prep, '_python_pseudoregion_panel',
+                        lambda *args, **kwargs: (
+                            {'t0': names, 't1': names}, {'method': 'test'}))
+    args = Namespace(feature_selection=True, selection_plan=None,
+                     n_features='100,100', output_dir=str(tmp_path))
     actual = _preprocess_with_feature_counts(args, raw)
-    assert actual.obs_names.tolist() == ['b', 'a', 'd', 'c']
-    assert actual.obs.timepoint.tolist() == ['0', '0', '1', '1']
+    assert actual.obs_names.tolist() == expected
     assert actual.var_names.tolist() == names
+    np.testing.assert_array_equal(actual.layers['counts'],
+                                  raw[expected, names].X)
     assert np.isfinite(actual.X).all()
-
-    # A rank snapshot advertised by the manifest must pass its hash check
-    # before it can influence an exact historical replay.
-    rank_file = panel_dir / 'sparkx_candidates_0.txt'
-    rank_file.write_text(''.join(gene + '\n' for gene in names))
-    panel = json.loads((panel_dir / 'panel.json').read_text())
-    panel['retained_genes'] = len(names)
-    panel['retained_genes_sha256'] = _sha256(union)
-    panel['selection_parameters'] = {
-        'sparkx_candidate_ranks_sha256': {'0': 'incorrect', '1': 'incorrect'},
-    }
-    (panel_dir / 'panel.json').write_text(json.dumps(panel))
-    with pytest.raises(ValueError, match='rank hash mismatch'):
-        _preprocess_with_feature_counts(args, raw)
