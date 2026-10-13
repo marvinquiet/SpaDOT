@@ -196,7 +196,7 @@ def plot_OT(args, adata):
         for i in range(transition_prob_min_df.shape[0]):
             for j in range(transition_prob_min_df.shape[1]):
                 value = transition_prob_min_df[i, j]
-                color = 'grey' if value < 0.2 else plt.cm.Reds(value)
+                color = 'grey' if value < 0.25 else plt.cm.Reds(value)
                 plt.scatter(j, i, s=value * 500, c=[color], edgecolors='black', alpha=0.8)
         plt.xticks(range(transition_prob_min_df.shape[1]), transition_table.var_names, rotation=45, ha='right')
         plt.yticks(range(transition_prob_min_df.shape[0]), transition_table.obs_names)
