@@ -104,10 +104,9 @@ class SpaDOT(nn.Module):
         Y: array_like, shape (n_spots, n_genes)
             Preprocessed count matrix.
         """ 
-        # solve warinings
-        X = torch.tensor(X, dtype=self.dtype, device=self.device)
-        Y = torch.tensor(Y, dtype=self.dtype, device=self.device)
-        edge_index = torch.tensor(edge_index, dtype=torch.long, device=self.device)
+        X = torch.as_tensor(X, dtype=self.dtype, device=self.device)
+        Y = torch.as_tensor(Y, dtype=self.dtype, device=self.device)
+        edge_index = torch.as_tensor(edge_index, dtype=torch.long, device=self.device)
         SVGP_qnet_mu, SVGP_qnet_var = self.SVGPEncoder(Y)
         SVGP_p_m, SVGP_p_v = [], []
         for l in range(self.SVGP_z_dim):

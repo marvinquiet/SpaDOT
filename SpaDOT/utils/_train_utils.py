@@ -70,7 +70,7 @@ def prepare_dataloader(adata, model_config):
         tp_edge_index, _ = dense_to_sparse(tp_adj)
         tp_graph_data = Data(
             x=torch.tensor(tp_adata.X, dtype=model_config['dtype']),
-            edge_index=torch.tensor(tp_edge_index, dtype=torch.long),
+            edge_index=torch.as_tensor(tp_edge_index, dtype=torch.long),
             data_index=torch.tensor(tp_ix, dtype=torch.int),
             loc=torch.tensor(tp_loc, dtype=model_config['dtype'])
         )
