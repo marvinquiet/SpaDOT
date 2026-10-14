@@ -10,14 +10,14 @@ import seaborn as sns
 def KMeans_Clustering(adata, n_clusters, seed=2026, n_init=10):
     """
     Perform KMeans clustering on the spatial data.
-    
+
     Parameters
     ----------
     adata : anndata.AnnData
         The AnnData object containing the spatial data.
     n_clusters : int
         The number of clusters to form.
-    
+
     Returns
     -------
     adata : anndata.AnnData
@@ -110,11 +110,11 @@ def Adaptive_clustering(args, adata, min_clusters=4, max_clusters=20, wss_thresh
 def OT_analysis(args, adata):
     """
     Perform optimal transport analysis on the spatial data.
-    
+
     Parameters
     ----------
     adata : anndata.AnnData
-        The AnnData object containing the spatial data.    
+        The AnnData object containing the spatial data.
     Returns
     -------
     adata : anndata.AnnData
@@ -141,11 +141,11 @@ def OT_analysis(args, adata):
 def plot_domains(args, adata):
     """
     Plot the spatial domains of the cells.
-    
+
     Parameters
     ----------
     adata : anndata.AnnData
-        The AnnData object containing the spatial data.    
+        The AnnData object containing the spatial data.
     Returns
     -------
     None
@@ -156,7 +156,7 @@ def plot_domains(args, adata):
         tp_adata.obs['pixel_y'] = tp_adata.obsm['spatial'][:, 1]
         # plot the spatial domains
         plt.figure(figsize=(5, 5))
-        sns.scatterplot(data=tp_adata.obs, x='pixel_x', y='pixel_y', 
+        sns.scatterplot(data=tp_adata.obs, x='pixel_x', y='pixel_y',
                         hue='kmeans', palette='tab10', s=10)
         plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         plt.title('Time point: {}'.format(tp))
@@ -167,11 +167,11 @@ def plot_domains(args, adata):
 def plot_OT(args, adata):
     """
     Plot the optimal transport results.
-    
+
     Parameters
     ----------
     adata : anndata.AnnData
-        The AnnData object containing the spatial data.    
+        The AnnData object containing the spatial data.
     Returns
     -------
     None
