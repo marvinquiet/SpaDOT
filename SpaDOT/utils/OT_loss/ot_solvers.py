@@ -1,11 +1,8 @@
-import logging
 import time
 from copy import deepcopy
 
 import numpy as np
 import sklearn.metrics
-
-logger = logging.getLogger(__name__)
 
 default_config = {
     "growth_iters": 3,
@@ -71,20 +68,27 @@ def primal(C, K, R, dx, dy, p, q, a, b, epsilon, lambda1, lambda2):
         )
 
 
-def dual(C, K, R, dx, dy, p, q, a, b, epsilon, lambda1, lambda2):
+def dual(C, K, R, dx, dy, p, q, a, b, epsilon, lambda1, lambda2, *, log_scalings=False):
     I = len(p)
     J = len(q)
     F1c = lambda u, v: fdivstar(lambda1, u, p, v)
     F2c = lambda u, v: fdivstar(lambda2, u, q, v)
 
-    t1 = -F1c(-epsilon * np.log(a), dx)
-    t2 = -F2c(-epsilon * np.log(b), dy)
+    log_a = a if log_scalings else np.log(a)
+    log_b = b if log_scalings else np.log(b)
+    t1 = -F1c(-epsilon * log_a, dx)
+    t2 = -F2c(-epsilon * log_b, dy)
     t3 = -epsilon * np.sum(R - K) / (I * J)
 
-    #print("py", I, J, lambda1, lambda2, t1, t2, t3)
-    #return -F1c(-epsilon * np.log(a), dx) - F2c(-epsilon * np.log(b), dy) - epsilon * np.sum(R - K) / (I * J)
-
     return t1 + t2 + t3
+
+
+def _relative_change_from_logs(current, previous):
+    """Compute ||x-y||/(1+||x||) without exponentiating large log scalings."""
+    shift = max(0.0, float(np.max(current)), float(np.max(previous)))
+    x = np.exp(current - shift)
+    y = np.exp(previous - shift)
+    return np.linalg.norm(x - y) / (np.exp(-shift) + np.linalg.norm(x))
 
 
 # end @ Lénaïc Chizat
@@ -101,7 +105,7 @@ def optimal_transport_duality_gap(
     tau,
     epsilon0,
     max_iter,
-    profiling,
+    profiling=False,
     **ignored,
 ):
     """Compute the stabilized OT map using the evaluated NumPy solver.
@@ -185,34 +189,38 @@ def optimal_transport_duality_gap(
                     a, b = np.ones(I), np.ones(J)
 
                 if current_iter >= max_iter:
-                    logger.warning("Reached max_iter with duality gap still above threshold. Returning")
-                    return (K.T * a).T * b
+                    raise RuntimeError("OT did not converge before max_iter was reached")
 
             time_s2 = time.time()
             if profiling:
                 print('step1 {:3f} ms'.format(1000 * (time_s2 - time_s1)))
 
             time_s3 = time.time()
-            # The real dual variables; a and b are only stabilized variables.
-            _a = a * np.exp(u / epsilon_i)
-            _b = b * np.exp(v / epsilon_i)
+            # Keep unscaled dual variables in log form, including diagnostics.
+            log_a = np.log(a) + u / epsilon_i
+            log_b = np.log(b) + v / epsilon_i
 
             # Before the final epsilon scale, use dual-variable evolution.
             if e == epsilon_scalings:
                 R = (K.T * a).T * b
-                pri = primal(C, _K, R, dx, dy, p, q, _a, _b, epsilon_i, lambda1, lambda2)
-                dua = dual(C, _K, R, dx, dy, p, q, _a, _b, epsilon_i, lambda1, lambda2)
-                duality_gap = (pri - dua) / abs(pri)
+                # The primal expression does not depend on its a/b arguments.
+                pri = primal(C, _K, R, dx, dy, p, q, a, b, epsilon_i, lambda1, lambda2)
+                dua = dual(C, _K, R, dx, dy, p, q, log_a, log_b, epsilon_i, lambda1, lambda2, log_scalings=True)
+                if not np.isfinite(pri) or not np.isfinite(dua):
+                    raise FloatingPointError("Non-finite OT primal or dual objective")
+                duality_gap = abs(pri - dua) / max(abs(pri), np.finfo(np.float64).tiny)
             else:
                 duality_gap = max(
-                    np.linalg.norm(_a - old_a * np.exp(u / epsilon_i)) / (1 + np.linalg.norm(_a)),
-                    np.linalg.norm(_b - old_b * np.exp(v / epsilon_i)) / (1 + np.linalg.norm(_b)),
+                    _relative_change_from_logs(log_a, np.log(old_a) + u / epsilon_i),
+                    _relative_change_from_logs(log_b, np.log(old_b) + v / epsilon_i),
                 )
+            if not np.isfinite(duality_gap):
+                raise FloatingPointError("Non-finite OT convergence diagnostic")
 
             time_s4 = time.time()
             if profiling:
                 print('step2 {:3f} ms'.format(1000 * (time_s4 - time_s3)))
 
-    if np.isnan(duality_gap):
-        raise RuntimeError("Overflow encountered in duality gap computation, please report this incident")
+    if not np.isfinite(R).all() or np.any(R < 0):
+        raise FloatingPointError("OT returned an invalid transport map")
     return R / C.shape[1]

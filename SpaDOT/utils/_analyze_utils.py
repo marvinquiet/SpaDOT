@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 import wot # Waddington OT, original package
+from .OT_loss.ot_solvers import optimal_transport_duality_gap
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -122,8 +123,13 @@ def OT_analysis(args, adata):
     """
     adata.obs['day'] = adata.obs['timepoint'].astype('category').cat.codes
     adata.obs['cell_growth_rate'] = 1 # initialize as 1
-    # larger epsilon0 to avoid overflow
-    ot_model = wot.ot.OTModel(adata, epsilon = 0.05, epsilon0 = 1, lambda1 = 0.1,lambda2 = 5, growth_iters=3) # imbalanced OT with imbalanced row and comparatiely balanced target
+    # Spot-level OT; WOT returns the final map after three growth updates.
+    ot_model = wot.ot.OTModel(
+        adata, epsilon=0.01, epsilon0=1, lambda1=0.1, lambda2=5,
+        growth_iters=3, tau=1000,
+    )
+    # WOT manages growth updates and tables; use SpaDOT's stable NumPy solver.
+    ot_model.solver = optimal_transport_duality_gap
     ot_model.compute_all_transport_maps(tmap_out=args.output_dir+os.sep+'OT') # compute transport maps
     tmap_model = wot.tmap.TransportMapModel.from_directory(args.output_dir+os.sep+'OT')
     # generate region dict

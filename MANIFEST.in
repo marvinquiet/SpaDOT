@@ -6,3 +6,4 @@ include examples/ChickenHeart_selection.json
 include examples/AxolotlTelencephalon_selection.json
 include examples/MouseEmbryo_selection.json
 recursive-include tests *.py
+include docs/release_1.0.6.md

@@ -62,7 +62,7 @@ row index, so this ordering is part of reproducible model input.
 Use `epoch_start: 1`, `epoch_stop_exclusive: 100`,
 `kl_cycle_epochs: 30`, seed 2026, the built-in NumPy OT solver,
 and the provided model architecture.
-SpaDOT 1.0.5 includes only this Python/NumPy OT backend. It has no
+SpaDOT 1.0.6 includes only this Python/NumPy OT backend. It has no
 platform-specific `libot.so` dependency.
 Use the executed epoch-99 latent for readout. For fixed region counts,
 `SpaDOT analyze --n_clusters ... --seed 2026 --n_init 10` uses KMeans++
