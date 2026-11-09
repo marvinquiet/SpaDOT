@@ -125,7 +125,7 @@ def OT_analysis(args, adata):
     adata.obs['cell_growth_rate'] = 1 # initialize as 1
     # Spot-level OT; WOT returns the final map after three growth updates.
     ot_model = wot.ot.OTModel(
-        adata, epsilon=0.01, epsilon0=1, lambda1=0.1, lambda2=5,
+        adata, epsilon=0.01, epsilon0=1, lambda1=1, lambda2=50,
         growth_iters=3, tau=1000,
     )
     # WOT manages growth updates and tables; use SpaDOT's stable NumPy solver.

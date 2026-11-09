@@ -88,17 +88,16 @@ from raw counts with fixed numeric settings.
 
 The most convenient way is to install with `pip`.
 
-To test a supplied SpaDOT 1.0.6 wheel before publication, install that file
-and run one of the three notebooks in `examples/` from the `examples/`
-directory. Each notebook checks the installed version and writes into its
-own new run directory.
+To run the three example notebooks, install SpaDOT 1.0.7 and open the
+notebooks from the `examples/` directory. Each notebook checks the installed
+version and writes into its own run directory.
 The raw H5AD files are not bundled. Place them at
 `examples/ChickenHeart_data/ChickenHeart.h5ad`,
 `examples/AxolotlTelencephalon_data/Axolotl.h5ad`, and
 `examples/MouseEmbryo_data/MouseEmbryo.h5ad` before running the notebooks.
 
 ```shell
-python -m pip install /path/to/spadot-1.0.6-py3-none-any.whl
+python -m pip install SpaDOT==1.0.7
 ```
 
 ```shell

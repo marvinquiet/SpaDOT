@@ -62,13 +62,18 @@ row index, so this ordering is part of reproducible model input.
 Use `epoch_start: 1`, `epoch_stop_exclusive: 100`,
 `kl_cycle_epochs: 30`, seed 2026, the built-in NumPy OT solver,
 and the provided model architecture.
-SpaDOT 1.0.6 includes only this Python/NumPy OT backend. It has no
+SpaDOT uses this Python/NumPy OT backend. It has no
 platform-specific `libot.so` dependency.
 Use the executed epoch-99 latent for readout. For fixed region counts,
 `SpaDOT analyze --n_clusters ... --seed 2026 --n_init 10` uses KMeans++
 and Lloyd updates. Dataset-specific K values used in the evaluations were
 Chicken Heart 5/7/7/6, Axolotl 6/7/8, and Mouse Embryo 5/5/5; confirm K from
 the frozen run manifest before reproducing an ARI.
+
+Final spot-level transition analysis uses `epsilon=0.01`, `epsilon0=1`,
+`lambda1=1`, `lambda2=50`, `growth_iters=3`, and `tau=1000`. The example
+transition plots color scores at or above 0.20. The plotted score is the
+minimum of the two directional conditional probabilities.
 
 The historic 99-update experiments retained a 300-update training horizon
 only to get a 30-epoch KL period. Version 1.0.5 separates the cycle period
