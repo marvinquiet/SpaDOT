@@ -69,8 +69,9 @@ SpaDOT analyze -h
 # Example datasets
 
 Run the following commands from the repository's `examples/` directory.
-The raw H5AD files are not bundled with the repository; place your input files
-at the paths below.
+The raw H5AD files are available as [release assets](https://github.com/marvinquiet/SpaDOT/releases/tag/example-data-20261112).
+Each notebook starts with a download cell that saves the corresponding file to
+the path below and verifies its SHA-256. Matching local files are reused.
 
 | Dataset | Raw file | Features per timepoint | Clusters per timepoint | Executed notebook |
 |---|---|---|---|---|
