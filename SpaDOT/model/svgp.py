@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 class SVGP(nn.Module):
     def __init__(self, model_config, inducing_points, N_train, jitter=1e-2):

@@ -42,11 +42,12 @@ selector ordinarily uses a candidate pool of
 `min(significant_count, max(1100, quota + min(quota, 1100)))` and the top
 `min(1100, candidate_pool)` candidates for PCA. It then protects the top
 100 SPARK-X genes and fills the remaining quota by balanced pseudoregion
-contrasts. If `--n_features` is omitted, the earlier Python
-SCTransform/Louvain selector remains available for compatibility.
-The three notebooks instead pass small `--selection_plan` JSON files
-containing only a PCA pool and ordered `[quota, candidate_pool]` stages for
-each timepoint. The stages preserve genes selected earlier as a prefix.
+contrasts. Feature selection requires `--n_features`; use
+`--no-feature-selection` to preprocess all genes instead.
+The three notebooks embed selection plans with a PCA pool and ordered
+`[quota, candidate_pool]` stages for each timepoint. Each notebook passes
+its plan to preprocessing through a temporary file. The stages preserve
+genes selected earlier as a prefix.
 The corrected Python SPARK-X calculation and these numeric plans regenerated
 all ten reported per-timepoint lists exactly from the corresponding raw
 H5AD files, without reading archived R ranks or gene lists during
@@ -59,12 +60,13 @@ row index, so this ordering is part of reproducible model input.
 
 ## Training and readout
 
-Use `epoch_start: 1`, `epoch_stop_exclusive: 100`,
+Start at epoch 1 and train while `epoch < 100`, using
+`epoch_start: 1`, `epoch_stop: 100`,
 `kl_cycle_epochs: 30`, seed 2026, the built-in NumPy OT solver,
 and the provided model architecture.
 SpaDOT uses this Python/NumPy OT backend. It has no
 platform-specific `libot.so` dependency.
-Use the executed epoch-99 latent for readout. For fixed region counts,
+Use the latent from the final executed epoch for readout. For fixed region counts,
 `SpaDOT analyze --n_clusters ... --seed 2026 --n_init 10` uses KMeans++
 and Lloyd updates. Dataset-specific K values used in the evaluations were
 Chicken Heart 5/7/7/6, Axolotl 6/7/8, and Mouse Embryo 5/5/5; confirm K from
@@ -75,10 +77,9 @@ Final spot-level transition analysis uses `epsilon=0.01`, `epsilon0=1`,
 transition plots color scores at or above 0.20. The plotted score is the
 minimum of the two directional conditional probabilities.
 
-The historic 99-update experiments retained a 300-update training horizon
-only to get a 30-epoch KL period. Version 1.0.5 separates the cycle period
-from the actual epoch bounds. In a fresh raw-data check, Mouse Embryo and
-Axolotl reproduced the saved 99-epoch loss and latent arrays exactly;
+The KL cycle period is independent of the training epoch bounds. In a fresh
+raw-data check, Mouse Embryo and
+Axolotl reproduced the saved loss and latent arrays exactly;
 Chicken Heart reproduced its gene panel and expression matrix exactly, with
 a small ARI difference because the raw coordinates use another axis
 orientation. These checks use one seed and do not establish generalization.

@@ -11,22 +11,22 @@ def test_first_100_weights_match_the_validated_300_epoch_schedule():
     assert actual.shape == (100,)
     np.testing.assert_array_equal(actual, reference)
     assert actual[0] == actual[30] == actual[60] == actual[90] == 0.0
-    assert actual[99] == reference[99]
+    assert actual[-1] == reference[-1]
 
 
-def test_epochs_one_through_ninety_nine_keep_original_update_phases():
-    plan = _epoch_plan({"epoch_start": 1, "epoch_stop_exclusive": 100})
+def test_exclusive_epoch_bound_keeps_original_update_phases():
+    plan = _epoch_plan({"epoch_start": 1, "epoch_stop": 100})
     assert list(plan) == list(range(1, 100))
-    assert [(epoch - plan.start) for epoch in plan] == list(range(99))
+    assert [(epoch - plan.start) for epoch in plan] == list(range(len(plan)))
     np.testing.assert_array_equal(
         _beta_cycle_linear_period(len(plan), 30),
-        _beta_cycle_linear(300)[:99],
+        _beta_cycle_linear(300)[:len(plan)],
     )
 
 
 @pytest.mark.parametrize('bounds', [
-    {"epoch_start": 1, "epoch_stop_exclusive": 1},
-    {"epoch_start": 100, "epoch_stop_exclusive": 1},
+    {"epoch_start": 1, "epoch_stop": 1},
+    {"epoch_start": 100, "epoch_stop": 1},
     {"epoch_start": 1},
 ])
 def test_invalid_epoch_bounds_rejected(bounds):

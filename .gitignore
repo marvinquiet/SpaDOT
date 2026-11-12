@@ -4,7 +4,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.h5ad
-examples/fixed99_runs/
+examples/fixed[0-9][0-9]_runs/
 examples/runs/
 examples/*_output/
 # model parameters
@@ -185,4 +185,4 @@ cython_debug/
 .pypirc
 
 # Historical reference lists stay local; examples derive genes from raw data.
-examples/fixed99_panels/
+examples/fixed[0-9][0-9]_panels/

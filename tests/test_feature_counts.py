@@ -84,3 +84,56 @@ def test_preprocess_preserves_within_slice_order(tmp_path, monkeypatch,
     np.testing.assert_array_equal(actual.layers['counts'],
                                   raw[expected, names].X)
     assert np.isfinite(actual.X).all()
+
+
+def test_feature_selection_requires_explicit_counts(tmp_path):
+    raw = ad.AnnData(X=np.ones((2, 3)),
+                     obs=pd.DataFrame({'timepoint': ['t0', 't1']},
+                                      index=['a', 'b']))
+    args = Namespace(feature_selection=True, n_features=None,
+                     selection_plan=None, output_dir=str(tmp_path))
+    with pytest.raises(ValueError, match='requires --n_features'):
+        prep.preprocess_adata(args, raw)
+
+
+@pytest.mark.parametrize('sparse', [False, True])
+def test_no_feature_selection_retains_all_genes_and_counts(tmp_path, sparse):
+    from scipy.sparse import csr_matrix, issparse
+    counts = np.array([[1, 4, 2], [7, 2, 3], [4, 8, 9], [2, 5, 11]])
+    raw = ad.AnnData(X=csr_matrix(counts) if sparse else counts,
+                     obs=pd.DataFrame({'timepoint': ['t0', 't0', 't1', 't1']},
+                                      index=['a', 'b', 'c', 'd']),
+                     var=pd.DataFrame(index=['g0', 'g1', 'g2']))
+    args = Namespace(feature_selection=False, n_features=None,
+                     selection_plan=None, output_dir=str(tmp_path))
+    actual = prep.preprocess_adata(args, raw)
+    assert actual.obs_names.tolist() == raw.obs_names.tolist()
+    assert actual.var_names.tolist() == raw.var_names.tolist()
+    saved_counts = actual.layers['counts']
+    np.testing.assert_array_equal(
+        saved_counts.toarray() if issparse(saved_counts) else saved_counts, counts)
+    assert np.isfinite(actual.X).all()
+    np.testing.assert_array_equal(raw.X.toarray() if sparse else raw.X, counts)
+
+
+@pytest.mark.parametrize('options', [
+    [],
+    ['--no-feature-selection', '--n_features', '100,100'],
+    ['--no-feature-selection', '--selection_plan', 'plan.json'],
+])
+def test_cli_rejects_missing_or_conflicting_feature_options(monkeypatch, options):
+    from SpaDOT.cli import parse_args
+    monkeypatch.setattr('sys.argv', ['SpaDOT', 'preprocess', '--data', 'raw.h5ad'] + options)
+    with pytest.raises(SystemExit) as exc:
+        parse_args()
+    assert exc.value.code == 2
+
+
+@pytest.mark.parametrize('options', [
+    ['--n_features', '500,500,1000'],
+    ['--no-feature-selection'],
+])
+def test_cli_accepts_explicit_selection_modes(monkeypatch, options):
+    from SpaDOT.cli import parse_args
+    monkeypatch.setattr('sys.argv', ['SpaDOT', 'preprocess', '--data', 'raw.h5ad'] + options)
+    assert parse_args().cmd_choice == 'preprocess'

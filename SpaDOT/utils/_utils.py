@@ -3,12 +3,10 @@ import os
 import math
 import time
 import yaml
-# from importlib.resources import files
 import sklearn
 import scipy as sp
 import numpy as np
 import pandas as pd
-import scanpy as sc
 import torch
 import random
 from torch.backends import cudnn
@@ -43,7 +41,6 @@ def load_model_config(args):
         config_path = args.config
     else:
         # Load the default config.yaml from the package
-        # config_path = files("SpaDOT").joinpath("config.yaml")
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.yaml")
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
@@ -191,34 +188,6 @@ def _sparkx(count, location, genenames, option='mixture', num_cores=1):
     significant_gene_number = min(res_sparkx.shape[0], max(significant_gene_number, 500))  # avoid too few genes
     SVGs = res_sparkx.sort_values('adjustedPval').iloc[:significant_gene_number, :]
     return SVGs
-
-def _cluster_SVGs(SVG_mat, k=10):
-    # --- obtain result from Scanpy
-    # record cluster time
-    start_time = time.time()
-    SVG_adata = sc.AnnData(X=SVG_mat)
-    sc.tl.pca(SVG_adata)
-    sc.pp.neighbors(SVG_adata, n_neighbors=100, n_pcs=30, method='gauss')
-    # sc.pp.neighbors(SVG_adata, n_neighbors=100, n_pcs=30)
-    # D = SVG_adata.obsp["distances"].tocoo()
-    # W_data = 1.0 / (1.0 + D.data)
-    # W = sp.sparse.csr_matrix((W_data, (D.row, D.col)), shape=D.shape)
-    # W = W + W.T # make undirected
-    # SVG_adata.obsp["connectivities"] = W
-    resolution = 1.0
-    sc.tl.louvain(SVG_adata,
-                 resolution=resolution, 
-                 key_added=f"louvain_{resolution}",
-                 use_weights=True)
-    while len(set(SVG_adata.obs[f"louvain_{resolution}"])) < k:
-        resolution += 0.1
-        sc.tl.louvain(SVG_adata, 
-                    resolution=resolution,
-                    key_added=f"louvain_{resolution}",
-                    use_weights=True)
-    end_time = time.time()
-    print(f"Time taken for clustering SVGs: {end_time - start_time:.2f} seconds")
-    return SVG_adata.obs[f"louvain_{resolution}"].values
 
 def _sparkx_sk(counts, infomat, num_cores=1):
     """Simplified SPARK-X without covariate matrix

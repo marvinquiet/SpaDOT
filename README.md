@@ -10,13 +10,13 @@ SpaDOT is an open-source computational method for identifying spatial domains an
 ### Example training configuration
 
 The bundled `SpaDOT/config.yaml` starts at epoch 1 and executes while
-`epoch < 100`, for exactly 99 optimizer updates (epochs 1 through 99).
+`epoch < 100`.
 The SVGP KL coefficient follows a 30-epoch linear cycle, controlled by
 `kl_cycle_epochs: 30`; its period is independent of the training length.
 The packaged trainer does not use reconstruction-loss patience or restore an
-earlier checkpoint. The saved model and `latent.h5ad` are from executed epoch
-99. Set `epoch_start` and `epoch_stop_exclusive` in custom configs; their
-difference is the number of optimizer updates. `maxiter` is no longer a
+earlier checkpoint. The saved model and `latent.h5ad` are from the final
+executed epoch. Set `epoch_start` and `epoch_stop` in custom configs;
+their difference is the number of optimizer updates. `maxiter` is no longer a
 training setting. A custom config without `kl_cycle_epochs` retains the
 historical ten cycles over its training length.
 
@@ -41,13 +41,15 @@ alone did not determine gene quota across these datasets. See
 `docs/example_workflow.md` in the source repository for the selection
 and preprocessing recipe. `SpaDOT preprocess --n_features 500,500,1000`
 uses Python SPARK-X and pseudoregion selection, with one quota per timepoint.
+Feature selection requires `--n_features`. Use `--no-feature-selection` to
+preprocess all genes without selecting a panel.
 The optional `--selection_plan` supplies numeric candidate-pool and
 selection-stage settings for reproducible examples directly from raw counts.
 It contains no saved gene lists or rankings. The executable notebooks are
 [`ChickenHeart.ipynb`](examples/ChickenHeart.ipynb),
 [`AxolotlTelencephalon.ipynb`](examples/AxolotlTelencephalon.ipynb), and
 [`MouseEmbryo.ipynb`](examples/MouseEmbryo.ipynb). Their small numeric
-selection plans are beside the notebooks. The R-free selection procedure is
+selection plans are embedded in the notebooks. The R-free selection procedure is
 integrated into `SpaDOT/utils/_preprocess_utils.py`.
 
 **Table of Contents**
@@ -86,9 +88,11 @@ from raw counts with fixed numeric settings.
 
 ## Installation
 
-The most convenient way is to install with `pip`.
+Install this checkout with `python -m pip install -e .` to use the current
+configuration and preprocessing interface. Published PyPI releases can
+precede these source changes.
 
-To run the three example notebooks, install SpaDOT 1.0.7 and open the
+To run the three example notebooks, install this checkout and open the
 notebooks from the `examples/` directory. Each notebook checks the installed
 version and writes into its own run directory.
 The raw H5AD files are not bundled. Place them at

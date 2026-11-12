@@ -29,7 +29,7 @@ def parse_args():
     preprocess_parser.add_argument('--no-feature-selection', dest='feature_selection',
             action='store_false', help="Skip feature selection and use all genes.")
     preprocess_parser.add_argument('--n_features', type=str,
-            help="Comma-separated SVG counts in natural timepoint order, e.g. 500,500,1000. "
+            help="Required for feature selection: comma-separated SVG counts in natural timepoint order, e.g. 500,500,1000. "
                  "Uses Python SPARK-X and 12 KMeans pseudoregions.")
     preprocess_parser.add_argument('--selection_plan', type=str,
             help="Optional JSON file with numeric PCA pools and [gene quota, SPARK-X candidate pool] "
@@ -57,7 +57,7 @@ def parse_args():
             type=str, default='cuda:0', help="Device to use for training. Default: cuda:0")
     train_parser.add_argument('--save_model', dest='save_model',
             default=False, action="store_true",
-            help="Whether saving the trained model. If specified, the trained model will be stored in the output_dir as 'model.pt'.")
+            help="Whether saving the trained model. If specified, the trained model will be stored in the output_dir as 'SpaDOT_model.pth'.")
 
     ## ===========================
     # Parser for analyzing latent representations
@@ -81,6 +81,14 @@ def parse_args():
     analyze_parser.add_argument('--n_init', type=int, default=10,
                                 help="Final KMeans initializations. Default: 10.")
     args = parser.parse_args()
+    if args.cmd_choice == 'preprocess':
+        if args.feature_selection and args.n_features is None:
+            preprocess_parser.error(
+                'feature selection requires --n_features (one count per timepoint); '
+                'use --no-feature-selection to keep all genes')
+        if not args.feature_selection and (args.n_features is not None or args.selection_plan):
+            preprocess_parser.error(
+                '--no-feature-selection cannot be combined with --n_features or --selection_plan')
     print("User input arguments: ", args)
     return args
 

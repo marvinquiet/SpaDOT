@@ -170,10 +170,10 @@ def _beta_cycle_linear_period(n_iter, period, start=0.0, stop=1, ratio=1):
 def _epoch_plan(model_config):
     """Return displayed epoch numbers while retaining zero-based update phases."""
     start = model_config.get('epoch_start')
-    stop = model_config.get('epoch_stop_exclusive')
+    stop = model_config.get('epoch_stop')
     if (type(start) is not int or start < 0 or
             type(stop) is not int or stop <= start):
-        raise ValueError('epoch_start and epoch_stop_exclusive must define a nonempty range')
+        raise ValueError('epoch_start and epoch_stop must define a nonempty range')
     return range(start, stop)
 
 

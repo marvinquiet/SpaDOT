@@ -1,242 +1,223 @@
 ## SpaDOT Tutorial
 
-**Authors:**  
-[Wenjing Ma](https://marvinquiet.github.io/), Department of Biostatistics, University of Michigan  
-Siyu Hou, Department of Biostatistics, University of Michigan  
-[Lulu Shang](https://lulushang.org/), Department of Biostatistics, MD Anderson Cancer Center  
-[Jiaying Lu](https://lujiaying.github.io/), Center for Data Science, School of Nursing, Emory University  
-[Xiang Zhou](https://xiangzhou.github.io/), Department of Biostatistics, University of Michigan  
+**Authors:**<br>
+[Wenjing Ma](https://marvinquiet.github.io/), Department of Biostatistics, University of Michigan<br>
+[Siyu Hou](https://svvord.github.io/), Department of Biostatistics, University of Michigan<br>
+[Lulu Shang](https://lulushang.org/), Department of Biostatistics, MD Anderson Cancer Center<br>
+[Jiaying Lu](https://lujiaying.github.io/), Center for Data Science, School of Nursing, Emory University<br>
+[Xiang Zhou](https://xiangzhou.github.io/), Department of Biostatistics, University of Michigan<br>
 
-**Maintainer:** [Wenjing Ma](https://marvinquiet.github.io/) (wenjinma@umich.edu)
+**Maintainer:** [Wenjing Ma](https://marvinquiet.github.io/) (wenjinma@umich.edu)<br>
+**Latest revision:** November 12, 2026
 
-**Latest revision:** 09/30/2025
+# Contents
 
-# Table of Contents
 - [Introduction](#introduction)
 - [Installation](#installation)
-- [Example 1: developing chicken heart](#example-1-developing-chicken-heart)
-<!-- - [Example 2: developing chicken heart](#example-1-developing-chicken-heart) -->
-- [Conclusion](#conclusion)
+- [Example datasets](#example-datasets)
+- [1. Load the data](#1-load-the-data)
+- [2. Run SpaDOT preprocess](#2-run-spadot-preprocess)
+- [3. Run SpaDOT train](#3-run-spadot-train)
+- [4. Run SpaDOT analyze](#4-run-spadot-analyze)
+- [5. Obtain the results](#5-obtain-the-results)
 
 # Introduction
 
-Spatiotemporal transcriptomics is an emerging and powerful approach that adds a temporal dimension to traditional spatial transcriptomics, thus enabling the characterization of dynamic changes in tissue architecture during development or disease progression. Tissue architecture is generally organized into spatial domains -- regions within a tissue characterized by relatively similar gene expression profiles that often correspond to distinct biological functions. Crucially, these spatial domains are not static; rather, they undergo complex temporal dynamics during development, differentiation, and disease progression, resulting in emergence, disappearance, splitting, and merging of domains over time. Therefore, we develop SpaDOT (**Spa**tial **DO**main **T**ransition detection), a novel and scalable machine learning method for identifying spatial domains and inferring their temporal dynamics in spatiotemporal transcriptomics studies.
+SpaDOT identifies spatial domains and infers their temporal associations in
+spatiotemporal transcriptomics data. It combines a Gaussian-process encoder
+with a graph-attention encoder to learn spatial representations across timepoints,
+using clustering and optimal transport during training.
 
-<!-- ![img](workflow.png) -->
 <p align="center">
-  <img src="workflow.png" alt="img">
+  <img src="workflow.png" alt="SpaDOT workflow">
 </p>
 
-(The figure illustrates how SpaDOT works. SpaDOT adopts an integration of two complementary encoders, a Gaussian Process kernel and a Graph Attention Transformer, within one variational autoencoder framework to obtain spatially aware latent representations. The latent representations are further constrained by clustering within each time point and optimal transport (OT) coupling across time points, enabling SpaDOT to identify spatial domains and capture domain transition dynamics. )
-
-In this tutorial, we provide detailed instructions for SpaDOT by utilizing two real data applications: a developing chicken heart sequenced by 10X Vision and a developing mouse brain sequenced by Stereo-seq. 
+The examples cover Chicken Heart and Mouse Embryo measured with 10x Visium,
+and Axolotl Telencephalon measured with Stereo-seq. Each follows the same workflow:
+load raw data, preprocess, train, analyze, and inspect the results.
 
 # Installation
 
-**Step 1**: SpaDOT is distributed as a Python package. To get started, please make sure you have Python installed (we recommend Python version >= 3.9). For feature selection, SpaDOT provides a Python implementation of [SPARK-X](https://github.com/xzhoulab/SPARK), which we strongly recommend using. Selecting spatially variable genes with SPARK-X has been consistently shown to improve results.
-
-**Step 2**: Use the following command to install SpaDOT:
-
-```shell
-pip install SpaDOT
-```
-The installation will take seconds to finish and the software dependencies have been taken care of by pip. We have tested our package on Windows, MacOS, and Linux. 
-
-You will also have to install your version (based on your pytorch and cuda version) of `pyg` or `torch-sparse` and then install `torch-geometric`, more details can be found [here](https://github.com/pyg-team/pyg-lib). In my scenario:
-
-```
-pip install pyg-lib torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.5.0+cu124.html
-
-pip install torch-geometric -f https://data.pyg.org/whl/torch-2.5.0+cu124.html
-```
-
-#### Trouble shooting
-
-To make life easier, I would highly recommend using a [conda](https://docs.conda.io/projects/conda/en/stable/user-guide/getting-started.html) environment.
-
-```
-conda create -n SpaDOT python=3.9
-pip install SpaDOT
-```
-
-Then, install `pyg-lib` and `torch-geometric` based on your `import torch; torch.__version__`.
-
-
-**Step 3**: If you have successfully installed SpaDOT, you can try the following command:
+This page describes the current GitHub source, including the `epoch_stop`
+configuration name and explicit feature-count requirement. To use it:
 
 ```shell
-## Check the help documentation of SpaDOT
-SpaDOT -h 
+git clone https://github.com/marvinquiet/SpaDOT.git
+cd SpaDOT
+python -m pip install -e .
 ```
 
-You should see the following console output:
+Use a separate Python environment (Python 3.9 was used for the examples).
+Install the PyTorch Geometric sampling dependencies appropriate for your
+PyTorch and CUDA versions; see the
+[PyTorch Geometric installation guide](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html).
+Check `torch.__version__` and `torch.version.cuda` before choosing wheels.
+R and `libot.so` are not required.
 
-```
-usage: SpaDOT [-h] {preprocess,train,analyze} ...
+The published package can also be installed with `python -m pip install SpaDOT`,
+but a published release may precede the current source changes.
 
-SpaDOT: Optimal transport modeling uncovers spatial domain dynamics in spatiotemporal transcriptomics.
+For command-line help:
 
-positional arguments:
-  {preprocess,train,analyze}
-                        sub-command help.
-    preprocess          (Recommended but optional) Perform data preprocessing and feature selection.
-    train               Train a SpaDOT model.
-    analyze             Analyze the latent representations generated by SpaDOT model.
-
-optional arguments:
-  -h, --help            show this help message and exit
-```
-
-In each module, you can use `-h` to show related help pages. For example, `SpaDOT train -h`:
-
-```
-usage: SpaDOT train [-h] [-i DATA] [-o OUTPUT_DIR] [--prefix PREFIX] [--config CONFIG] [--device DEVICE] [--save_model]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -i DATA, --data DATA  A anndata object containing time point information and spatial coordinates.
-  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
-                        Output directory to store latent representations. Default: the same as where the data locates.
-  --prefix PREFIX       Prefix for output latent representations. Default: ''
-  --config CONFIG       Path to the config file, in a yaml format.
-  --device DEVICE       Device to use for training. Default: cuda:0
-  --save_model          Whether saving the trained model. If specified, the trained model will be stored in the output_dir as 'model.pt'.
+```shell
+SpaDOT -h
+SpaDOT preprocess -h
+SpaDOT train -h
+SpaDOT analyze -h
 ```
 
+# Example datasets
 
-**Step 4 (Optional):** If you prefer using SpaDOT with-in program, you can follow the rendered Jupyter notebooks [here](https://github.com/marvinquiet/SpaDOT/blob/main/examples/). 
+Run the following commands from the repository's `examples/` directory.
+The raw H5AD files are not bundled with the repository; place your input files
+at the paths below.
 
----
+| Dataset | Raw file | Features per timepoint | Clusters per timepoint | Executed notebook |
+|---|---|---|---|---|
+| Chicken Heart | `ChickenHeart_data/ChickenHeart.h5ad` | 500,500,1000,1000 | 5,7,7,6 | [Chicken Heart](https://github.com/marvinquiet/SpaDOT/blob/main/examples/ChickenHeart.ipynb) |
+| Mouse Embryo | `MouseEmbryo_data/MouseEmbryo.h5ad` | 3000,3000,3000 | 5,5,5 | [Mouse Embryo](https://github.com/marvinquiet/SpaDOT/blob/main/examples/MouseEmbryo.ipynb) |
+| Axolotl Telencephalon | `AxolotlTelencephalon_data/Axolotl.h5ad` | 500,500,1000 | 6,7,8 | [Axolotl Telencephalon](https://github.com/marvinquiet/SpaDOT/blob/main/examples/AxolotlTelencephalon.ipynb) |
 
-# Example 1: developing chicken heart
+The notebooks contain their example-specific numeric selection settings and
+cached spatial and transition plots. Use the notebooks to reproduce those
+settings. The command-line example below uses the default selection settings
+for the requested feature counts, which can select different genes.
+See the [example workflow guide](example_workflow.md) for details.
 
-The [developing chicken heart](https://doi.org/10.1038/s41467-021-21892-z) is measured by 10X Visium and collected from four stages: Day 4, Day 7, Day 10 and Day 14. In this dataset, SpaDOT accurately identifies valvulogenesis - a valve splits into artrioventricular valve and semilunar valve at Day 14. For your convenience, you can download the processed data [here](https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0). If you would like to see the preprocessing steps, please expand the section below:
+Chicken Heart source data are available from
+[GSE149457](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457);
+the [data assembly script](https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py)
+documents how the slices were combined.
 
-<details>
-<summary>More details on Chicken Heart data</summary>
+# 1. Load the data
 
-<p>First, we downloaded the spatial transcritpomics data from <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149457">GSE149457</a> and selected </p>
+The input is an AnnData H5AD file containing raw counts in `adata.X`,
+timepoint labels in `adata.obs["timepoint"]`, and finite two-dimensional spatial
+coordinates in `adata.obsm["spatial"]`. Spot and gene names must be unique.
+Keep spot order consistent when reproducing a run.
 
+```python
+import anndata as ad
 
-<ul>
-  <li>GSM4502482_chicken_heart_spatial_RNAseq_D4_filtered_feature_bc_matrix.h5</li>
-  <li>GSM4502483_chicken_heart_spatial_RNAseq_D7_filtered_feature_bc_matrix.h5</li>
-  <li>GSM4502484_chicken_heart_spatial_RNAseq_D10_filtered_feature_bc_matrix.h5</li>
-  <li>GSM4502485_chicken_heart_spatial_RNAseq_D14_filtered_feature_bc_matrix.h5</li>
-</ul>
-
-
-<p>Second, we downloaded spatial coordinates from the analysis code shared by the paper on <a href="https://github.com/madhavmantri/chicken_heart/tree/master/data/chicken_heart_spatial_RNAseq_processed">Github</a>:</p>
-
-
-<ul>
-  <li>chicken_heart_spatial_RNAseq_D4_tissue_positions_list.csv</li>
-  <li>chicken_heart_spatial_RNAseq_D7_tissue_positions_list.csv</li>
-  <li>chicken_heart_spatial_RNAseq_D10_tissue_positions_list.csv</li>
-  <li>chicken_heart_spatial_RNAseq_D14_tissue_positions_list.csv</li>
-</ul>
-
-
-<p>Third, we used the script <code>process_ChickenHeart.py</code> provided <a href="https://github.com/marvinquiet/SpaDOT/blob/main/analyses/process_ChickenHeart.py">here</a> to preprocess the data by integrating them into one anndata with <code>timepoint</code> in anndata observations (obs) as one-hot encoder indicating four time points: 0, 1, 2 and 3 indicate Day 4, Day 7, Day 10 and Day 14, respectively. We have also put the spatial coordinates with keyword <code>spatial</code> as a numpy array inside anndata observation metadata (obsm).</p>
-
-
-<p>After running the <code>process_ChickenHeart.py</code>, we will obtain the file <code>ChickenHeart.h5ad</code>. For your convenience, you can download the processed data <a href="https://www.dropbox.com/scl/fi/xklj0dxkd2wz10ahgbwg1/ChickenHeart.h5ad?rlkey=06245qjhv4ohij5530a1az91c&dl=0">here</a>. </p>
-
-</details>
-
-**Step 1: Perform data preprocessing and feature selection**
-
-After obtaining `ChickenHeart.h5ad`, we perform the data preprocessing. Here, we use command line as demonstration.
-
-```
-SpaDOT preprocess --data ./ChickenHeart.h5ad --output_dir ./ChickenHeart_output
+adata = ad.read_h5ad("ChickenHeart_data/ChickenHeart.h5ad")
+print(adata.shape)
+print(adata.obs["timepoint"].value_counts(sort=False))
+assert adata.obs_names.is_unique and adata.var_names.is_unique
+assert adata.obsm["spatial"].shape == (adata.n_obs, 2)
 ```
 
-<details>
+# 2. Run SpaDOT preprocess
 
-<summary>More about no feature selection</summary>
+Provide one feature count per timepoint, in natural timepoint-label order.
+Each count must be at least 100. SpaDOT validates the counts and selects
+genes directly from the raw data using Python SPARK-X and pseudoregions.
 
-<p>If you prefer not to perform spatially variable gene selection, add <code>--no-feature-selection</code> to use all genes in the dataset. To select an explicit number of SVGs for each timepoint using Python SPARK-X and pseudoregions, pass <code>--n_features 500,500,1000</code> (one number per timepoint in natural label order). See the fixed-99 feature-panel guide for exact reproduction of the bundled examples.</p>
-
-<code>
-SpaDOT preprocess --data ./ChickenHeart.h5ad --no-feature-selection --output_dir ./ChickenHeart_output
-</code>
-
-</details>
-
-
-After data preprocessing, we will have `processed_ChickenHeart.h5ad` in the directory.
-
-**Step 2: Train SpaDOT to obtain latent representations**
-
-Then, we can train the SpaDOT model to obtain latent representations by using 
-
-```
-SpaDOT train --data ChickenHeart_output/preprocessed_ChickenHeart.h5ad
+```shell
+SpaDOT preprocess \
+  --data ChickenHeart_data/ChickenHeart.h5ad \
+  --output_dir ChickenHeart_output \
+  --n_features 500,500,1000,1000
 ```
 
-Here, we train with default parameters. For overriding default parameters purpose, a `yaml` file is needed. We have provided an example [config.yaml](https://github.com/marvinquiet/SpaDOT/blob/main/SpaDOT/config.yaml) with our default parameters for your reference. **Again, we do recommend using our default parameters to achieve the best performance,** but if you wish to tune them, you can do so with:
+This writes `ChickenHeart_output/preprocessed_ChickenHeart.h5ad`,
+per-timepoint gene lists, the union gene list, and `SVG_selection.json`.
+Selected counts are normalized, log-transformed, and scaled separately
+within each timepoint.
 
-```
-SpaDOT train --data ChickenHeart_output/preprocessed_ChickenHeart.h5ad --config config.yaml
-```
-The default device is `cuda:0`. You can switch to CPU by setting the `--device` option to `cpu`. However, we **recommend training on a GPU, which typically takes around 5 minutes. Training on a CPU is also possible but will take significantly longer.**
+To preprocess all genes instead, omit `--n_features` and use
+`--no-feature-selection`:
 
-**Step 3: Infer spatial domains and domain dynamics**
-
-Once the training stage finishes, we can obtain spatial domains and generate domain dynamics. If we have prior knowledge on how many domains we might have (given by the original study), we can run:
-
-```
-SpaDOT analyze --data ChickenHeart_output/latent.h5ad --n_clusters 5,7,7,6
-```
-
-#### Output spatial domains
-
-| Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
-|-----------|-------|-------|--------|--------|
-| Spatial Domains | ![Day 4](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/0_domains.png) |![Day 7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/1_domains.png) | ![Day 10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/2_domains.png) | ![Day 14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/3_domains.png) | 
-
-#### Output OT analysis
-
-| Timepoint | Day 4 --> Day 7 | Day 7 --> Day 10 | Day 10 --> Day 14 | 
-|-----------|-----------------|------------------|-------------------|
-| OT transition | ![Day 4to7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/transition_dotplot_0_1.png) | ![Day 7to10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/transition_dotplot_1_2.png) |  ![Day 10to14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/transition_dotplot_2_3.png) |
-
-**Step 5: infer spatial domains and domain dynamics based on Elbow method (Optional)**
-
-Or, we can leave out the `--n_clusters` option, then SpaDOT would automatically run Elbow method to determine the number of clusters
-
-```
-SpaDOT analyze --data latent.h5ad --prefix adaptive_
+```shell
+SpaDOT preprocess \
+  --data ChickenHeart_data/ChickenHeart.h5ad \
+  --output_dir ChickenHeart_all_genes_output \
+  --no-feature-selection
 ```
 
-We then have the plot of calculating the within-cluster sum of squares (WSS) of KMeans with the number of clusters ranging from 5 to 20. We then  detect the Elbow point and select the corresponding cluster number.
+# . Run SpaDOT train
 
+```shell
+SpaDOT train \
+  --data ChickenHeart_output/preprocessed_ChickenHeart.h5ad \
+  --output_dir ChickenHeart_output \
+  --device cuda:0 \
+  --save_model
+```
 
-### Output WSS per cluster and spatial domains
+The bundled configuration starts at epoch 1 and trains while `epoch < 100`:
 
-| Timepoint | Day 4 | Day 7 | Day 10 | Day 14 | 
-|-----------|-------|-------|--------|--------|
-| WSS per cluster | ![Day 4](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_0_WSS_vs_Clusters.png) | ![Day 7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_1_WSS_vs_Clusters.png) | ![Day 10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_2_WSS_vs_Clusters.png) | ![Day 14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_3_WSS_vs_Clusters.png) | 
-| Spatial Domains | ![Day 4](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_0_domains.png) | ![Day 7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_1_domains.png) | ![Day 10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_2_domains.png) | ![Day 14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_3_domains.png) | 
+```yaml
+epoch_start: 1
+epoch_stop: 100
+kl_cycle_epochs: 30
+```
 
-### Output OT analysis
+The KL cycle period is independent of the stopping bound. The saved model
+and latent representation come from the final executed epoch.
+To change settings, copy the
+[configuration file](https://github.com/marvinquiet/SpaDOT/blob/main/SpaDOT/config.yaml)
+and pass `--config path/to/config.yaml`.
+Use `--device cpu` if a GPU is unavailable; runtime depends on the data and hardware.
 
-| Timepoint | Day 4 --> Day 7 | Day 7 --> Day 10 | Day 10 --> Day 14 | 
-|-----------|-----------------|------------------|-------------------|
-| OT transition | ![Day 4to7](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_transition_dotplot_0_1.png) | ![Day 7to10](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_transition_dotplot_1_2.png) |  ![Day 10to14](https://raw.githubusercontent.com/marvinquiet/SpaDOT/main/examples/ChickenHeart_output/adaptive_transition_dotplot_2_3.png) |
+For the deterministic setup used by the examples, follow the environment and
+thread settings in the notebooks and use the same software versions, input
+ordering, and random seed.
 
+# 4. Run SpaDOT analyze
 
-# Conclusion
+Supply one domain count per timepoint:
 
-SpaDOT provides efficient and accurate spatial domain detection for spatiotemporal transcriptomics studies and offers insights into domain transition dynamics. Its contributions are three-fold:
+```shell
+SpaDOT analyze \
+  --data ChickenHeart_output/latent.h5ad \
+  --output_dir ChickenHeart_output \
+  --n_clusters 5,7,7,6 \
+  --seed 2026 \
+  --n_init 10
+```
 
-1. **Capturing domain dynamics via optimal transport (OT) constraints**: Across time points, OT constraints guide the alignment of functionally similar domains while separating dissimilar ones, enabling SpaDOT to accurately identify both shared and time-specific domains and infer their biological relationships over time.
+SpaDOT clusters each timepoint, computes spot-level transport between adjacent
+timepoints, and aggregates it into domain transition tables. Final OT analysis
+uses `epsilon=0.01`, `lambda1=1`, `lambda2=50`, and three growth updates.
 
-2. **Modeling both global and local spatial patterns for enhanced structural embedding**: Within each time point, SpaDOT integrates a Gaussian Process (GP) prior and Graph Attention Transformer (GAT) within a variational autoencoder (VAE) framework, capturing both global spatial continuity and local structural heterogeneity.
+The dot plots show the minimum of row- and column-normalized transition
+probabilities. Values below 0.20 are grey; the saved transition tables retain
+the original aggregated values. These associations do not establish cell lineage.
 
-3. **Eliminating the need to predefine the number of spatial domains**: Unlike existing methods, SpaDOT does not require the number of domains to be specified in advance, reducing dependence on prior knowledge and improving ease of use.
+If domain counts are unknown, omit `--n_clusters` to use the WSS-based
+adaptive clustering heuristic, which tests 4 through 20 clusters:
 
-We hope that SpaDOT will be a useful tool for your research. For questions or comments, please open an issue on [Github](https://github.com/marvinquiet/SpaDOT/issues).
+```shell
+SpaDOT analyze \
+  --data ChickenHeart_output/latent.h5ad \
+  --output_dir ChickenHeart_adaptive_output \
+  --prefix adaptive_ \
+  --seed 2026 \
+  --n_init 10
+```
 
-<!--**Citation**-->
+Adaptive counts are exploratory and need biological assessment. They need not
+match the fixed-count example results.
+
+# 5. Obtain the results
+
+| Output | Contents |
+|---|---|
+| `preprocessed_ChickenHeart.h5ad` | Model input with selected features and stored counts |
+| `SVG_genes.txt` and `SVG_genes_<timepoint>.txt` | Union and per-timepoint gene lists |
+| `SVG_selection.json` | Selection settings and diagnostics |
+| `latent.h5ad` | Learned embeddings, timepoint labels, and spatial coordinates |
+| `loss.csv` | Training losses |
+| `SpaDOT_model.pth` | Model weights, when `--save_model` is supplied |
+| `<timepoint>_domains.png` | Spatial domain plots |
+| `OT/` | Spot-level transport maps |
+| `transition_table_<source>_<target>.h5ad` | Aggregated domain transition tables |
+| `transition_dotplot_<source>_<target>.png` | Conditional-probability dot plots |
+
+Transition filenames use ordered timepoint indices. Adaptive outputs also
+include WSS plots and use the requested prefix. Use a new output directory
+for a new run to preserve earlier results.
+
+The three linked notebooks show the spatial panels and transition plots
+inline. For questions or issues, use the
+[GitHub issue tracker](https://github.com/marvinquiet/SpaDOT/issues).
