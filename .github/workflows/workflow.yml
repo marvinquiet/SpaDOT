@@ -6,6 +6,7 @@ on:
 
 jobs:
   build-and-publish:
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
 
     steps:
